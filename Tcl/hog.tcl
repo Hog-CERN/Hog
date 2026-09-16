@@ -62,6 +62,20 @@ proc AddHogFiles {libraries properties filesets} {
     set place_conf 0
   }
 
+  # Vitis: the workspace apps do not change while files are added, and querying
+  # them opens and locks the workspace, so get them once for all the filesets.
+  # Only the vitis_only pass adds files to the apps: while Vivado is adding the
+  # HDL sources the workspace is still empty, so do not even open it
+  set ws_apps ""
+  if {![IsVivado] || ([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
+    if {[IsVitisClassic]} {
+      set ws_apps [GetVitisApps]
+    } elseif {[IsVitisUnified]} {
+      set ws_apps [GetVitisApps "$globalSettings::build_dir/vitis_unified" \
+        "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    }
+  }
+
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet
@@ -86,42 +100,12 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Vitis: Check if defined apps have a corresponding source file
-    if {[IsVitisClassic] || [IsVitisUnified]} {
-      # Get the workspace apps
-      if {[IsVitisClassic]} {
-        # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-        if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
-      } elseif {[IsVitisUnified]} {
-        # Get app list from Vitis Unified workspace using Python script
-        set vitis_workspace "$globalSettings::build_dir/vitis_unified"
-        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
-        set json_output ""
-        if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-          Msg Warning "Failed to get app list from Vitis Unified"
-          set ws_apps ""
-        } else {
-          if {[catch {package require json}]} {
-            Msg Warning "JSON package not available for parsing Vitis Unified app list"
-            set ws_apps ""
-          } else {
-            set json_output_filtered ""
-            if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-              set ws_apps [json::json2dict $json_output_filtered]
-            } else {
-              set ws_apps [json::json2dict $json_output]
-            }
-          }
-        }
-      }
-
-      # Check if each app has a corresponding source file
-      if {$ws_apps ne ""} {
-        dict for {app_name app_config} $ws_apps {
-          set app_lib [string tolower "app_$app_name\.src"]
-          if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
-              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
-          }
+    if {$ws_apps ne ""} {
+      dict for {app_name app_config} $ws_apps {
+        set app_lib [string tolower "app_$app_name\.src"]
+        if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+          Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+            Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
         }
       }
     }
@@ -635,7 +619,7 @@ proc AddHogFiles {libraries properties filesets} {
 
       # Get Vitis version and set as environment variable for Python script
       set vitis_version [GetIDEVersion]
-      set env(HOG_VITIS_VER) $vitis_version
+      set ::env(HOG_VITIS_VER) $vitis_version
       Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
 
       dict for {app_name app_data} $app_files_dict {
@@ -663,10 +647,13 @@ proc AddHogFiles {libraries properties filesets} {
 
           Msg Debug "JSON string: $files_json"
 
+          # The file list contains spaces: pass it in the environment, as a command
+          # line argument it would be split by the Windows shell that runs vitis.bat
+          set ::env(HOG_VITIS_APP_FILES) $files_json
           set error_msg "Failed to add files to app $app_name"
           if {
             ![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
-              [list $app_name $files_json $vitis_workspace $target_path] \
+              [list $app_name $vitis_workspace $target_path] \
               $error_msg]
           } {
             Msg Error "Failed to add files to Vitis Unified app '$app_name'"
@@ -1720,7 +1707,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in [open $xmlfile r]
 
-      if {[regexp \/xml\/+(.*)$ $xmlfile XXX out_with_dir]} {
+      if {[regexp {/xml/+(.*)$} $xmlfile XXX out_with_dir]} {
         set out_file $dst/$out_with_dir
         lappend xmls $out_with_dir
         Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
@@ -1799,6 +1786,496 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     file delete -force address_decode
     cd $old_dir
   }
+}
+
+## @brief Map a Cheby generator alias from the .chb list file to the
+#         corresponding cheby command-line flag.
+#
+# Each line in a .chb list file may set a `gen=` property whose value is a
+# comma-separated list of generators (e.g. `gen=hdl,consts`). The aliases used
+# in the list file are intentionally short and stable; this proc translates
+# them to the actual cheby executable flags (e.g. `--gen-hdl`).
+#
+# @param[in] gen   The short generator alias (e.g. "hdl", "consts", "c", "doc")
+#
+# @return          The cheby command-line flag for that generator,
+#                  or an empty string if the alias is unknown.
+proc ChebyGenFlag {gen} {
+  switch -- $gen {
+    "hdl"        { return "--gen-hdl" }
+    "consts"     { return "--gen-consts" }
+    "c"          { return "--gen-c" }
+    "c_check"    { return "--gen-c-check-layout" }
+    "doc"        { return "--gen-doc" }
+    "memmap"     { return "--print-memmap" }
+    "memmap_v"   { return "--print-memmap-verbose" }
+    "pretty"     { return "--print-pretty" }
+    "devicetree" { return "--gen-devicetree" }
+    "edge"       { return "--gen-edge" }
+    "silecs"     { return "--gen-silecs" }
+    "wbgen"      { return "--gen-wbgen-hdl" }
+    "custom"     { return "--gen-custom" }
+    "install"    { return "--gen-install-script" }
+    "gena_memmap" { return "--gen-gena-memmap" }
+    "gena_regctrl" { return "--gen-gena-regctrl" }
+    default      { return "" }
+  }
+}
+
+## @brief Parse a Cheby `.chb` list file into a list of per-line dictionaries.
+#
+# Each non-empty, non-comment line is expected to have the form:
+#   <input.cheby> [<output1> <output2> ...] [key=value ...]
+# Tokens containing `=` are treated as properties (mapped to cheby flags),
+# while tokens without `=` are treated as expected output files.
+#
+# @param[in] chb_file  Path to a .chb list file.
+#
+# @return              A list of dictionaries, one per line. Each dictionary
+#                      contains keys: input, outputs, props, line, file.
+proc ParseChebyListFile {chb_file} {
+  set fp [open $chb_file r]
+  set data [read $fp]
+  close $fp
+  set lines [split $data "\n"]
+  set result [list]
+  set line_num 0
+  foreach line $lines {
+    incr line_num
+    set trimmed [string trim $line]
+    if {$trimmed eq "" || [string index $trimmed 0] eq "#"} {
+      continue
+    }
+    set tokens [regexp -all -inline {\S+} $line]
+    if {[llength $tokens] < 1} {
+      continue
+    }
+    set input [lindex $tokens 0]
+    set rest [lrange $tokens 1 end]
+    set outputs [list]
+    set props [dict create]
+    foreach tok $rest {
+      set eq_pos [string first "=" $tok]
+      if {$eq_pos == -1} {
+        lappend outputs $tok
+      } else {
+        set key [string range $tok 0 [expr {$eq_pos - 1}]]
+        set val [string range $tok [expr {$eq_pos + 1}] end]
+        dict set props $key $val
+      }
+    }
+    lappend result [dict create input $input outputs $outputs props $props \
+                                line $line_num file $chb_file]
+  }
+  return $result
+}
+
+## @brief Translate Cheby list-file properties into cheby command-line flags
+#         and pair each declared output file with its generator.
+#
+# The properties dictionary may contain a special `gen=` entry whose value is
+# a comma-separated list of generator aliases. The number of comma-separated
+# generators must match the number of expected output files declared on the
+# same .chb line. When `gen=` is absent, this proc tries to infer a single
+# generator from the file extension of the (single) declared output file.
+#
+# All other recognised properties are mapped to cheby flags, e.g.:
+#   hdl=vhdl       -> --hdl vhdl
+#   header=commit  -> --header commit
+#   c_style=arm    -> --c-style arm
+#   doc=html       -> --doc html
+# Boolean-style properties (e.g. hdl_preload=1) are emitted as bare flags.
+# Properties whose key already starts with `--` are passed through verbatim.
+#
+# @param[in] props    A dict of key=value properties parsed from the .chb line.
+# @param[in] outputs  A list of expected output file paths declared on the
+#                     same .chb line.
+#
+# @return             A 3-element list { ok gen_map opt_flags } where:
+#                       ok        is 0 on success or non-zero on error.
+#                       gen_map   on success: a list { gen out gen out ... }
+#                                 pairing each generator with its output;
+#                                 on error: a human-readable error message.
+#                       opt_flags on success: a flat list of cheby flag/value
+#                                 elements to add to the command line.
+proc BuildChebyCmdArgs {props outputs} {
+  set gens [list]
+  if {[dict exists $props "gen"]} {
+    set gen_csv [dict get $props "gen"]
+    set gens [split $gen_csv ","]
+  }
+  set ngens [llength $gens]
+  if {$ngens == 0} {
+    if {[llength $outputs] == 1} {
+      set ext [string tolower [file extension [lindex $outputs 0]]]
+      switch -- $ext {
+        ".vhd" -
+        ".vhdl" -
+        ".v" -
+        ".sv"   { set gens [list "hdl"] }
+        ".h" -
+        ".hpp"  { set gens [list "c"] }
+        ".html" -
+        ".md" -
+        ".rst" -
+        ".tex"  { set gens [list "doc"] }
+        default {
+          return [list 1 "Cannot infer generator from output extension '$ext'.\
+                          Please add a `gen=...` property to the line." [list]]
+        }
+      }
+      set ngens 1
+    } else {
+      return [list 1 "Cannot map [llength $outputs] outputs without a `gen=...`\
+                      property listing the generators." [list]]
+    }
+  }
+  if {[llength $outputs] != $ngens} {
+    return [list 1 "Number of declared outputs ([llength $outputs]) does not match\
+                    number of generators ($ngens, gen=[join $gens ,])." [list]]
+  }
+  set gen_map [list]
+  foreach g $gens o $outputs {
+    lappend gen_map $g $o
+  }
+
+  set option_map [dict create \
+    "hdl"           "--hdl" \
+    "header"        "--header" \
+    "c_style"       "--c-style" \
+    "consts_style"  "--consts-style" \
+    "doc"           "--doc" \
+    "address_space" "--address-space" \
+    "out_prefix"    "--out-prefix" \
+    "ff_reset"      "--ff-reset" \
+    "word_endian"   "--word-endian" \
+    "wb_lib_name"   "--wb-lib-name" \
+    "axil_lib_name" "--axil-lib-name" \
+    "rest_headers"  "--rest-headers" \
+    "custom"        "--custom" \
+  ]
+  set bool_map [dict create \
+    "hdl_preload"        "--hdl-preload" \
+    "doc_hide_comments"  "--doc-hide-comments" \
+    "doc_no_reg_drawing" "--doc-no-reg-drawing" \
+    "doc_include_js_dep" "--doc-include-js-dep" \
+    "gena_common_visual" "--gena-common-visual" \
+    "gen_c_bit_struct"   "--gen-c-bit-struct" \
+    "gen_gena_dsp"       "--gen-gena-dsp" \
+  ]
+
+  set opt_flags [list]
+  dict for {k v} $props {
+    if {$k eq "gen" || $k eq "profile"} {
+      continue
+    }
+    if {[dict exists $option_map $k]} {
+      lappend opt_flags [dict get $option_map $k] $v
+    } elseif {[dict exists $bool_map $k]} {
+      if {$v eq "1" || [string tolower $v] eq "true" || [string tolower $v] eq "yes"} {
+        lappend opt_flags [dict get $bool_map $k]
+      }
+    } elseif {[string range $k 0 1] eq "--"} {
+      lappend opt_flags $k $v
+    } else {
+      Msg Warning "Unknown cheby property '$k=$v', ignoring."
+    }
+  }
+  return [list 0 $gen_map $opt_flags]
+}
+
+## @brief Return @a abs as a path relative to @a base for cheby argv/header display.
+#
+# Cheby records sys.argv in generated file headers.  Running cheby from the
+# YAML directory with relative paths produces headers comparable to manual
+# gen_regs.sh invocations (e.g. gasp_regs.yaml instead of an absolute path).
+#
+# @param[in] base  Reference directory (typically the .yaml/.cheby parent dir).
+# @param[in] abs   Absolute path to express relatively.
+#
+# @return          A relative path, or @a abs unchanged when no relative form exists.
+proc ChebyRelPath {base abs} {
+  set base [file normalize $base]
+  set abs [file normalize $abs]
+  if {$base eq [file dirname $abs]} {
+    return [file tail $abs]
+  }
+  set rel [Relative $base $abs 1]
+  if {$rel eq ""} {
+    return $abs
+  }
+  return $rel
+}
+
+## @brief Drop the leading auto-generated cheby comment header from a line list.
+#
+# Cheby headers (see cheby/gen_header.py) are metadata only and always sit at
+# the top of the file in a fixed shape: a banner line, the argv line, and an
+# optional "Generated on <date> by <user>" line (only with header=full). None
+# of these should cause check-mode mismatches when the register body matches.
+# Blank lines are assumed already removed by the caller.
+#
+# @param[in] lines  Non-blank, trimmed lines read from a generated file.
+#
+# @return           Lines with the cheby banner/argv/timestamp lines removed.
+proc StripChebyGeneratedHeader {lines} {
+  set idx [lsearch -regexp $lines {Do not edit\.\s+Generated by cheby}]
+  if {$idx < 0} {
+    return $lines
+  }
+  # Always drop the banner and the following argv line.
+  set last $idx
+  incr last
+  # Drop the optional timestamp line when present (header=full).
+  # Match anywhere in the line: VHDL uses "-- Generated on ...", C/Markdown
+  # may use other comment prefixes.
+  set ts_line [lindex $lines [expr {$idx + 2}]]
+  if {$ts_line ne "" && [string first "Generated on " $ts_line] >= 0} {
+    incr last
+  }
+  return [lreplace $lines $idx $last]
+}
+
+## @brief Compare two text files ignoring trailing whitespace and blank lines.
+#
+# Used by CopyChebyFiles to detect if a regenerated cheby output is
+# semantically different from what is currently committed on disk.
+#
+# @param[in] file1             Path to the first file.
+# @param[in] file2             Path to the second file.
+# @param[in] skip_cheby_header If 1, ignore cheby auto-generated comment headers.
+#
+# @return                      1 if the files are equivalent, 0 otherwise.
+proc FilesAreSemanticallyEqual {file1 file2 {skip_cheby_header 0}} {
+  if {![file exists $file1] || ![file exists $file2]} {
+    return 0
+  }
+  set fa [open $file1 r]
+  set fb [open $file2 r]
+  set la [list]
+  set lb [list]
+  while {[gets $fa line] != -1} {
+    set line [string trimright $line]
+    if {[string trim $line] eq ""} { continue }
+    lappend la $line
+  }
+  while {[gets $fb line] != -1} {
+    set line [string trimright $line]
+    if {[string trim $line] eq ""} { continue }
+    lappend lb $line
+  }
+  close $fa
+  close $fb
+  if {$skip_cheby_header} {
+    set la [StripChebyGeneratedHeader $la]
+    set lb [StripChebyGeneratedHeader $lb]
+  }
+  if {[llength $la] != [llength $lb]} {
+    return 0
+  }
+  foreach x $la y $lb {
+    if {$x ne $y} { return 0 }
+  }
+  return 1
+}
+
+## @brief Read .chb (Cheby) list files and either regenerate or check the
+#         declared cheby outputs (HDL, C headers, documentation, etc.).
+#
+# This is the Cheby equivalent of CopyIPbusXMLs. For each .chb file in
+# `<proj_dir>/list/`, every non-comment line is parsed (see ParseChebyListFile)
+# and the cheby executable is invoked with the appropriate flags. In `check`
+# mode (the default), generated outputs are written to a temporary directory
+# and compared against the on-disk targets, reporting any mismatches; in
+# `generate` mode the on-disk targets are overwritten with the freshly
+# generated content.
+#
+# A copy of the resolved .cheby inputs and the (existing) generated outputs
+# is also placed under `<dst>` for traceability.
+#
+# @param[in] proj_dir         Project directory (must contain a `list/` folder).
+# @param[in] path             Base path against which paths inside the .chb
+#                             list files are resolved (typically the repo root).
+# @param[in] dst              Destination directory where the resolved cheby
+#                             dependency set and selected outputs are copied.
+# @param[in] cheby_version    Project-wide cheby version (recorded in logs).
+# @param[in] cheby_sha        Project-wide cheby SHA (recorded in logs).
+# @param[in] generate         If 1, overwrite on-disk outputs with newly
+#                             generated content; if 0, only check.
+# @param[in] profile          If not "all", only process .chb lines whose
+#                             `profile=` property matches this value.
+# @param[in] tool             Cheby executable to invoke (default: "cheby").
+# @param[in] strict           If 1, any mismatch/missing output is reported as
+#                             an Error (otherwise as a CriticalWarning).
+# @param[in] verbose          If 1, print expanded cheby command lines.
+#
+# @return                     The number of errors encountered (0 on success).
+proc CopyChebyFiles {proj_dir path dst {cheby_version "0.0.0"} {cheby_sha "00000000"} \
+                     {generate 0} {profile "all"} {tool "cheby"} {strict 0} {verbose 0}} {
+  set chb_files [glob -nocomplain $proj_dir/list/*.chb]
+  if {[llength $chb_files] == 0} {
+    Msg CriticalWarning "No files with .chb extension found in $proj_dir/list."
+    return 1
+  }
+
+  lassign [ExecuteRetUserEnv $tool --version] ret tool_msg
+  if {$ret != 0} {
+    if {$generate == 1} {
+      Msg Error "Cannot run cheby: '$tool' not found or not working: $tool_msg"
+      return 1
+    } else {
+      Msg Warning "Cheby executable '$tool' not found or not working ($tool_msg).\
+                   Will not verify cheby outputs."
+      return 0
+    }
+  }
+  Msg Info "Using cheby tool: $tool ([string trim $tool_msg])"
+  if {$cheby_version ne "" && $cheby_sha ne ""} {
+    Msg Info "Cheby list set version: $cheby_version, SHA: $cheby_sha"
+  }
+
+  set dst [file normalize $dst]
+  file mkdir $dst
+  set tmp_dir [file join $dst _check]
+  file mkdir $tmp_dir
+  set inputs_dir [file join $dst inputs]
+  file mkdir $inputs_dir
+
+  set n_lines 0
+  set n_processed 0
+  set n_changed 0
+  set n_errors 0
+  set severity [expr {$strict ? "Error" : "CriticalWarning"}]
+
+  foreach chb_file $chb_files {
+    Msg Info "Processing cheby list file: $chb_file"
+    set entries [ParseChebyListFile $chb_file]
+    foreach entry $entries {
+      incr n_lines
+      set input_rel [dict get $entry input]
+      set outputs   [dict get $entry outputs]
+      set props     [dict get $entry props]
+      set line_num  [dict get $entry line]
+      set chb_tail  [file tail $chb_file]
+
+      set line_profile [DictGet $props "profile" "all"]
+      if {$profile ne "all" && $line_profile ne "all" && $line_profile ne $profile} {
+        if {$verbose} {
+          Msg Info "  Skipping $chb_tail:$line_num (profile='$line_profile')"
+        }
+        continue
+      }
+
+      set abs_input [file normalize "$path/$input_rel"]
+      if {![file exists $abs_input]} {
+        Msg $severity "Cheby input not found ($chb_tail:$line_num): $abs_input"
+        incr n_errors
+        continue
+      }
+
+      lassign [BuildChebyCmdArgs $props $outputs] ok gen_map opt_flags
+      if {$ok != 0} {
+        Msg $severity "$chb_tail:$line_num: $gen_map"
+        incr n_errors
+        continue
+      }
+
+      # Run cheby from the input directory with relative argv paths so generated
+      # headers match manual invocations (cheby records sys.argv verbatim).
+      set cheby_cwd [file dirname $abs_input]
+      set cmd [list $tool -i [file tail $abs_input]]
+      foreach f $opt_flags { lappend cmd $f }
+
+      set out_targets [list]
+      set bad_gen 0
+      foreach {gen out_rel} $gen_map {
+        set gen_flag [ChebyGenFlag $gen]
+        if {$gen_flag eq ""} {
+          Msg $severity "$chb_tail:$line_num: unknown generator '$gen'"
+          incr n_errors
+          set bad_gen 1
+          break
+        }
+        set abs_target [file normalize "$path/$out_rel"]
+        if {$generate == 1} {
+          set out_path $abs_target
+        } else {
+          set out_path [file join $tmp_dir \
+                                  [file rootname [file tail $abs_target]]_${n_lines}_${gen}[file extension $abs_target]]
+        }
+        lappend cmd $gen_flag [ChebyRelPath $cheby_cwd $out_path]
+        lappend out_targets [list $out_rel $abs_target $out_path $gen]
+      }
+      if {$bad_gen} { continue }
+
+      foreach t $out_targets {
+        file mkdir [file dirname [lindex $t 1]]
+        file mkdir [file dirname [lindex $t 2]]
+      }
+
+      if {$verbose} {
+        Msg Info "  Running (cwd=$cheby_cwd): [join $cmd { }]"
+      }
+
+      set saved_pwd [pwd]
+      cd $cheby_cwd
+      lassign [ExecuteRetUserEnv {*}$cmd] cret cmsg
+      cd $saved_pwd
+      if {$cret != 0} {
+        Msg $severity "Cheby failed for $input_rel ($chb_tail:$line_num): $cmsg"
+        incr n_errors
+        continue
+      }
+      incr n_processed
+
+      if {$generate == 1} {
+        foreach t $out_targets {
+          Msg Info "  Generated: [lindex $t 0]"
+          incr n_changed
+        }
+      } else {
+        foreach t $out_targets {
+          set out_rel    [lindex $t 0]
+          set abs_target [lindex $t 1]
+          set out_path   [lindex $t 2]
+          if {![file exists $abs_target]} {
+            Msg $severity "Expected cheby output missing: $out_rel ($chb_tail:$line_num)"
+            incr n_errors
+            continue
+          }
+          if {[FilesAreSemanticallyEqual $out_path $abs_target 1] == 0} {
+            Msg $severity "Cheby output mismatch: $out_rel does not match what cheby\
+                           would generate from $input_rel ($chb_tail:$line_num).\
+                           Run `Hog/Do cheby <project> -generate` to refresh."
+            catch { file copy -force $out_path "$dst/diff_[file tail $abs_target]" }
+            incr n_changed
+            incr n_errors
+          } else {
+            Msg Info "  OK: $out_rel matches generator output."
+          }
+        }
+      }
+
+      catch { file copy -force $abs_input [file join $inputs_dir [file tail $abs_input]] }
+      foreach t $out_targets {
+        set abs_target [lindex $t 1]
+        if {[file exists $abs_target]} {
+          catch { file copy -force $abs_target [file join $dst [file tail $abs_target]] }
+        }
+      }
+    }
+  }
+
+  catch { file delete -force $tmp_dir }
+
+  set summary "Cheby summary: parsed $n_lines line(s), ran $n_processed cheby invocation(s),\
+               $n_changed change(s), $n_errors error(s)."
+  if {$n_errors > 0} {
+    Msg CriticalWarning $summary
+  } else {
+    Msg Info $summary
+  }
+  return $n_errors
 }
 
 ## @brief Returns the description from the hog.conf file.
@@ -1901,6 +2378,54 @@ proc eos {command {attempt 1}} {
     }
   }
   return [list $ret $result]
+}
+
+## @brief Quote a string for a POSIX shell single-quoted literal.
+proc ShellSingleQuote {s} {
+  return "'[string map {' '\\''} $s]'"
+}
+
+## @brief Run an external command using the user's shell environment.
+#
+# Inside Vivado, Tcl's exec can route Python scripts through Vivado's bundled
+# Python (missing deps such as PyYAML). Re-run via bash with Vivado Python env
+# cleared, and for .py tools call /usr/bin/python3 explicitly.
+#
+# Optional env HOG_PYTHON overrides the python command (full path or name).
+# Important: the bash -c script must be passed as ONE Tcl list element, otherwise
+# Tcl word-splits it and bash only runs the first token (e.g. bare `env`).
+proc ExecuteRetUserEnv {args} {
+  global env
+  if {![IsVivado]} {
+    return [ExecuteRet {*}$args]
+  }
+
+  set run_args $args
+  set tool [lindex $args 0]
+  if {[regexp {\.py$} $tool]} {
+    if {[info exists env(HOG_PYTHON)] && $env(HOG_PYTHON) ne ""} {
+      set py $env(HOG_PYTHON)
+    } else {
+      set py /usr/bin/python3
+    }
+    set run_args [linsert $args 0 $py]
+  }
+
+  set quoted [list]
+  foreach a $run_args {
+    lappend quoted [ShellSingleQuote $a]
+  }
+  set inner [join $quoted { }]
+
+  if {[OS] eq "windows"} {
+    return [ExecuteRet {*}[list cmd /c $inner]]
+  }
+
+  # Vivado sets PYTHON/PYTHONPATH/PYTHONHOME to its bundled 3.8.3. Clear them
+  # and put system bins first so cheby sees system packages (e.g. PyYAML).
+  set cmd "env -u PYTHONHOME -u PYTHONPATH -u PYTHON \
+PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
+  return [ExecuteRet {*}[list /bin/bash -c $cmd]]
 }
 
 ## @brief Handle shell commands
@@ -3341,6 +3866,12 @@ proc GetProjectFiles {{project_file ""}} {
 
           if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
             set prop "93"
+          } elseif {[string equal [lindex $type 0] "VHDL"] && [string equal [lindex $type 1] "2019"]} {
+            # VHDL 2019 must be reported as an explicit property, unlike VHDL 2008
+            # (the default, kept propertyless below) so it matches the "2019" tag
+            # used in list files.
+            set type "VHDL"
+            set prop "2019"
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
@@ -3644,8 +4175,9 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints,
-#           libraries, submodules, external, ipbus xml, user ip repos
+#           libraries, submodules, external, ipbus xml, user ip repos, cheby (hash and ver)
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  global NOT_CLEAN_WARNED
   if {[catch {package require cmdline} ERROR]} {
     puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return 1
@@ -3844,6 +4376,25 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set xml_hash ""
   }
 
+  # Cheby register-map sources
+  if {[llength [glob -nocomplain $proj_dir/list/*.chb]] > 0} {
+    lassign [GetHogFiles -list_files "*.chb" -sha_mode "$proj_dir/list/" $repo_path] cheby_files dummy
+    if {[dict exists $cheby_files "cheby.chb"]} {
+      set cheby_source_files [dict get $cheby_files "cheby.chb"]
+      lassign [GetVer $cheby_source_files] cheby_ver cheby_hash
+      lappend SHAs $cheby_hash
+      lappend versions $cheby_ver
+      lappend project_files {*}[glob $proj_dir/list/*.chb] {*}$cheby_source_files
+    } else {
+      set cheby_ver ""
+      set cheby_hash ""
+    }
+  } else {
+    Msg Info "This project does not use Cheby register maps"
+    set cheby_ver ""
+    set cheby_hash ""
+  }
+
   set user_ip_repos ""
   set user_ip_repo_hashes ""
   set user_ip_repo_vers ""
@@ -3904,7 +4455,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {
-    Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+    if {![info exists NOT_CLEAN_WARNED]} {
+      Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+      set NOT_CLEAN_WARNED 1
+    }
     set clean 0
   }
 
@@ -3948,7 +4502,8 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     $hog_hash $hog_ver $top_hash $top_ver \
     $libs $hashes $vers $cons_ver $cons_hash \
     $ext_names $ext_hashes $xml_hash $xml_ver \
-    $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
+    $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers \
+    $cheby_hash $cheby_ver]
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -4081,6 +4636,7 @@ proc GetVer {path {force_develop 0}} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+  global NO_HOG_VER_TAG_WARNED
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -4115,7 +4671,10 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
         # Msg Debug "Chosen Tag $tag"
         set pattern {v\d+\.\d+\.\d+}
         if {![regexp $pattern $tag]} {
-          Msg CriticalWarning "No Hog version tags found in this repository."
+          if {![info exists NO_HOG_VER_TAG_WARNED]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set NO_HOG_VER_TAG_WARNED 1
+          }
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
@@ -5227,11 +5786,10 @@ proc IsQuartus {} {
 #  @param[in]    the path to check
 #
 proc IsRelativePath {path} {
-  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
+  if {[string index $path 0] == "~"} {
     return 0
-  } else {
-    return 1
   }
+  return [expr {[file pathtype $path] eq "relative"}]
 }
 
 ## @brief Returns true if the Synthesis tool is Synplify
@@ -5331,7 +5889,7 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   Msg Debug "Executing: vitis -s $python_script $command $args"
 
   # Set PYTHONUNBUFFERED environment variable for real-time output
-  set env(PYTHONUNBUFFERED) "1"
+  set ::env(PYTHONUNBUFFERED) "1"
 
   # Open pipe and configure for line buffering
   if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {
@@ -5414,6 +5972,49 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   }
 
   return 1
+}
+
+## @brief Get the applications defined in the Vitis workspace
+#
+# In Vitis Unified this spawns an external "vitis -s" process which opens and
+# locks the workspace, so the result must be cached by the caller rather than
+# queried repeatedly.
+#
+# @param[in] vitis_workspace Path of the Vitis Unified workspace (not needed in Vitis Classic)
+# @param[in] python_script   Full path to AppCommands.py (not needed in Vitis Classic)
+# @param[out] A dict with the app names as keys, or an empty string if the list could not be retrieved
+#
+proc GetVitisApps {{vitis_workspace ""} {python_script ""}} {
+  if {[IsVitisClassic]} {
+    # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
+    if {[catch {set ws_apps [app list -dict]}]} {
+      set ws_apps ""
+    }
+    return $ws_apps
+  }
+
+  if {![IsVitisUnified]} {
+    return ""
+  }
+
+  set json_output ""
+  if {
+    ![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] \
+      "Failed to get app list from Vitis Unified workspace $vitis_workspace" json_output]
+  } {
+    return ""
+  }
+
+  if {[catch {package require json}]} {
+    Msg Warning "JSON package not available for parsing Vitis Unified app list"
+    return ""
+  }
+
+  set json_output_filtered ""
+  if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+    return [json::json2dict $json_output_filtered]
+  }
+  return [json::json2dict $json_output]
 }
 
 ## @brief Find out if the given Xilinx part is a Versal chip
@@ -5687,6 +6288,14 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
 
+    set ic [get_global_assignment -name INCREMENTAL_COMPILATION]
+    if {$ic ne "" && [string toupper $ic] ne "OFF"} {
+      Msg Info "Incremental compilation enabled ($ic), running Partition Merge..."
+      if {[catch {execute_module -tool cdb -args "--merge=on"} result]} {
+        Msg Error "Result: $result\nPartition Merge failed. See the report file.\n"
+      }
+    }
+
     if {[catch {execute_module -tool fit} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Place & Route failed. See the report file.\n"
@@ -5896,7 +6505,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
         if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
           Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
         }
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav
@@ -6212,25 +6821,9 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   if {[IsVitisUnified]} {
     set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
     set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
-    set json_output ""
-    if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-      Msg Error "Failed to get app list from Vitis Unified"
-      set ws_apps ""
-    } else {
-      if {[catch {package require json}]} {
-        Msg Error "JSON package not available for parsing Vitis Unified app list"
-        set ws_apps ""
-      } else {
-        set json_output_filtered ""
-        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-          set ws_apps [json::json2dict $json_output_filtered]
-        } else {
-          set ws_apps [json::json2dict $json_output]
-        }
-      }
-    }
+    set ws_apps [GetVitisApps $vitis_workspace $python_script]
   } elseif {[IsVitisClassic]} {
-    if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
+    set ws_apps [GetVitisApps]
   } else {
     Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
     exit 1
@@ -6238,7 +6831,8 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   # Get repository versions
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path] commit version hog_hash hog_ver top_hash top_ver \
-    libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+    libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers \
+    cheby_hash cheby_ver
   set this_commit [GetSHA]
   if {$commit == 0} {set commit $this_commit}
   set flavour [GetProjectFlavour $project_name]
@@ -6253,7 +6847,8 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
-    $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash \
+    $cheby_ver $cheby_hash
 
   # Build apps
   foreach app_name [dict keys $ws_apps] {
@@ -6510,7 +7105,8 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
           commit version hog_hash hog_ver top_hash top_ver \
           libs hashes vers cons_ver cons_hash \
           ext_names ext_hashes xml_hash xml_ver \
-          user_ip_repos user_ip_hashes user_ip_vers
+          user_ip_repos user_ip_hashes user_ip_vers \
+          cheby_hash cheby_ver
         if {$commit == 0} {set commit [GetSHA]}
         set version_str [HexVersionToString $version]
         set hog_ver_str [HexVersionToString $hog_ver]
@@ -7557,14 +8153,17 @@ proc ReadListFile {args} {
                 } else {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
-                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
+                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]]
+                    || [string first "top" $p] == 0
+                    || $list_file_ext eq ".ipb"
+                    || $list_file_ext eq ".chb"} {
                   if {$list_file_ext eq ".ipb"} {
                     dict lappend properties $vhdlfile $path/$p
                   } else {
                     dict lappend properties $vhdlfile $p
                   }
                   Msg Debug "Adding property $p to $vhdlfile..."
-                } elseif {$list_file_ext != ".ipb"} {
+                } elseif {$list_file_ext != ".ipb" && $list_file_ext != ".chb"} {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \
                   The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension]\]"
                 }
@@ -7584,6 +8183,8 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
+            } elseif {$list_file_ext == ".chb"} {
+              set lib_name "cheby.chb"
             } elseif {[IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}]} {
               # Adding Vitis library
               set lib_name "$library$list_file_ext"
@@ -7658,6 +8259,8 @@ proc ReadListFile {args} {
     #In SHA mode we also need to add the list file to the list
     if {$list_file_ext eq ".ipb"} {
       set sha_lib "xml.ipb"
+    } elseif {$list_file_ext eq ".chb"} {
+      set sha_lib "cheby.chb"
     } else {
       set sha_lib $lib$list_file_ext
     }
@@ -7954,6 +8557,7 @@ proc WriteGenerics {
   commit version top_hash top_ver hog_hash hog_ver
   cons_ver cons_hash libs vers hashes ext_names ext_hashes
   user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}
+  {cheby_ver ""} {cheby_hash ""}
 } {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
@@ -7974,6 +8578,12 @@ proc WriteGenerics {
     lappend generic_string \
       "XML_VER=[FormatGeneric $xml_ver]" \
       "XML_SHA=[FormatGeneric $xml_hash]"
+  }
+  # cheby hash
+  if {$cheby_hash != "" && $cheby_ver != ""} {
+    lappend generic_string \
+      "CHEBY_VER=[FormatGeneric $cheby_ver]" \
+      "CHEBY_SHA=[FormatGeneric $cheby_hash]"
   }
   #set project specific lists
   foreach l $libs v $vers h $hashes {

@@ -3305,6 +3305,12 @@ proc GetProjectFiles {{project_file ""}} {
 
           if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
             set prop "93"
+          } elseif {[string equal [lindex $type 0] "VHDL"] && [string equal [lindex $type 1] "2019"]} {
+            # VHDL 2019 must be reported as an explicit property, unlike VHDL 2008
+            # (the default, kept propertyless below) so it matches the "2019" tag
+            # used in list files.
+            set type "VHDL"
+            set prop "2019"
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
@@ -3342,7 +3348,7 @@ proc GetProjectFiles {{project_file ""}} {
             # VHDL files (both 2008 and 93)
             if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]] == 0} {
               dict lappend srcsets $dict_fs "${lib}.src"
-            }
+            } 
             dict lappend libraries "${lib}.src" $f
           } elseif {[string first "IP" $type] != -1} {
             # IPs

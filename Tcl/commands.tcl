@@ -70,7 +70,7 @@ set default_commands {
     set recreate 1
   # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
+  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, xsa.arg, verbose
   }
 
   \^I(MPL(EMENT(ATION)?)?)?$ {#proj

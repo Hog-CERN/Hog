@@ -62,6 +62,20 @@ proc AddHogFiles {libraries properties filesets} {
     set place_conf 0
   }
 
+  # Vitis: the workspace apps do not change while files are added, and querying
+  # them opens and locks the workspace, so get them once for all the filesets.
+  # Only the vitis_only pass adds files to the apps: while Vivado is adding the
+  # HDL sources the workspace is still empty, so do not even open it
+  set ws_apps ""
+  if {![IsVivado] || ([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
+    if {[IsVitisClassic]} {
+      set ws_apps [GetVitisApps]
+    } elseif {[IsVitisUnified]} {
+      set ws_apps [GetVitisApps "$globalSettings::build_dir/vitis_unified" \
+        "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    }
+  }
+
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet
@@ -86,42 +100,12 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Vitis: Check if defined apps have a corresponding source file
-    if {[IsVitisClassic] || [IsVitisUnified]} {
-      # Get the workspace apps
-      if {[IsVitisClassic]} {
-        # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-        if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
-      } elseif {[IsVitisUnified]} {
-        # Get app list from Vitis Unified workspace using Python script
-        set vitis_workspace "$globalSettings::build_dir/vitis_unified"
-        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
-        set json_output ""
-        if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-          Msg Warning "Failed to get app list from Vitis Unified"
-          set ws_apps ""
-        } else {
-          if {[catch {package require json}]} {
-            Msg Warning "JSON package not available for parsing Vitis Unified app list"
-            set ws_apps ""
-          } else {
-            set json_output_filtered ""
-            if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-              set ws_apps [json::json2dict $json_output_filtered]
-            } else {
-              set ws_apps [json::json2dict $json_output]
-            }
-          }
-        }
-      }
-
-      # Check if each app has a corresponding source file
-      if {$ws_apps ne ""} {
-        dict for {app_name app_config} $ws_apps {
-          set app_lib [string tolower "app_$app_name\.src"]
-          if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
-              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
-          }
+    if {$ws_apps ne ""} {
+      dict for {app_name app_config} $ws_apps {
+        set app_lib [string tolower "app_$app_name\.src"]
+        if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+          Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+            Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
         }
       }
     }
@@ -635,7 +619,7 @@ proc AddHogFiles {libraries properties filesets} {
 
       # Get Vitis version and set as environment variable for Python script
       set vitis_version [GetIDEVersion]
-      set env(HOG_VITIS_VER) $vitis_version
+      set ::env(HOG_VITIS_VER) $vitis_version
       Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
 
       dict for {app_name app_data} $app_files_dict {
@@ -663,10 +647,13 @@ proc AddHogFiles {libraries properties filesets} {
 
           Msg Debug "JSON string: $files_json"
 
+          # The file list contains spaces: pass it in the environment, as a command
+          # line argument it would be split by the Windows shell that runs vitis.bat
+          set ::env(HOG_VITIS_APP_FILES) $files_json
           set error_msg "Failed to add files to app $app_name"
           if {
             ![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
-              [list $app_name $files_json $vitis_workspace $target_path] \
+              [list $app_name $vitis_workspace $target_path] \
               $error_msg]
           } {
             Msg Error "Failed to add files to Vitis Unified app '$app_name'"
@@ -3856,6 +3843,12 @@ proc GetProjectFiles {{project_file ""}} {
 
           if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
             set prop "93"
+          } elseif {[string equal [lindex $type 0] "VHDL"] && [string equal [lindex $type 1] "2019"]} {
+            # VHDL 2019 must be reported as an explicit property, unlike VHDL 2008
+            # (the default, kept propertyless below) so it matches the "2019" tag
+            # used in list files.
+            set type "VHDL"
+            set prop "2019"
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
@@ -5770,11 +5763,10 @@ proc IsQuartus {} {
 #  @param[in]    the path to check
 #
 proc IsRelativePath {path} {
-  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
+  if {[string index $path 0] == "~"} {
     return 0
-  } else {
-    return 1
   }
+  return [expr {[file pathtype $path] eq "relative"}]
 }
 
 ## @brief Returns true if the Synthesis tool is Synplify
@@ -5874,7 +5866,7 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   Msg Debug "Executing: vitis -s $python_script $command $args"
 
   # Set PYTHONUNBUFFERED environment variable for real-time output
-  set env(PYTHONUNBUFFERED) "1"
+  set ::env(PYTHONUNBUFFERED) "1"
 
   # Open pipe and configure for line buffering
   if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {
@@ -5957,6 +5949,49 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   }
 
   return 1
+}
+
+## @brief Get the applications defined in the Vitis workspace
+#
+# In Vitis Unified this spawns an external "vitis -s" process which opens and
+# locks the workspace, so the result must be cached by the caller rather than
+# queried repeatedly.
+#
+# @param[in] vitis_workspace Path of the Vitis Unified workspace (not needed in Vitis Classic)
+# @param[in] python_script   Full path to AppCommands.py (not needed in Vitis Classic)
+# @param[out] A dict with the app names as keys, or an empty string if the list could not be retrieved
+#
+proc GetVitisApps {{vitis_workspace ""} {python_script ""}} {
+  if {[IsVitisClassic]} {
+    # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
+    if {[catch {set ws_apps [app list -dict]}]} {
+      set ws_apps ""
+    }
+    return $ws_apps
+  }
+
+  if {![IsVitisUnified]} {
+    return ""
+  }
+
+  set json_output ""
+  if {
+    ![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] \
+      "Failed to get app list from Vitis Unified workspace $vitis_workspace" json_output]
+  } {
+    return ""
+  }
+
+  if {[catch {package require json}]} {
+    Msg Warning "JSON package not available for parsing Vitis Unified app list"
+    return ""
+  }
+
+  set json_output_filtered ""
+  if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+    return [json::json2dict $json_output_filtered]
+  }
+  return [json::json2dict $json_output]
 }
 
 ## @brief Find out if the given Xilinx part is a Versal chip
@@ -6447,7 +6482,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
         if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
           Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
         }
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav
@@ -6763,25 +6798,9 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   if {[IsVitisUnified]} {
     set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
     set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
-    set json_output ""
-    if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-      Msg Error "Failed to get app list from Vitis Unified"
-      set ws_apps ""
-    } else {
-      if {[catch {package require json}]} {
-        Msg Error "JSON package not available for parsing Vitis Unified app list"
-        set ws_apps ""
-      } else {
-        set json_output_filtered ""
-        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-          set ws_apps [json::json2dict $json_output_filtered]
-        } else {
-          set ws_apps [json::json2dict $json_output]
-        }
-      }
-    }
+    set ws_apps [GetVitisApps $vitis_workspace $python_script]
   } elseif {[IsVitisClassic]} {
-    if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
+    set ws_apps [GetVitisApps]
   } else {
     Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
     exit 1

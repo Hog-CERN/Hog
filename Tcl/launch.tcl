@@ -125,6 +125,7 @@ set allow_empty_proj 0
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
 set do_ipbus_xml 0
+set do_cheby 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
 set do_buttons 0
@@ -210,14 +211,15 @@ if {$options(ci_run) == 1} {
   set ci_run 1
 }
 
-if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
+if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_cheby == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
+  set proj_dir [file normalize $repo_path/Top/$group_name/$project]
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path] commit version \
     hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
-    user_ip_repos user_ip_hashes user_ip_vers
+    user_ip_repos user_ip_hashes user_ip_vers cheby_hash cheby_ver
   cd $repo_path
 
-  set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
+  set describe [GetHogDescribe $proj_dir $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
@@ -384,10 +386,66 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {$do_cheby == 1} {
+    Msg Info "Handling Cheby register-map outputs for $project_name..."
+
+    set proj_dir $repo_path/Top/$project_name
+
+    if {$options(generate) == 1} {
+      set cheby_gen 1
+    } else {
+      set cheby_gen 0
+    }
+
+    if {$options(dst_dir) != ""} {
+      set dst_dir $options(dst_dir)
+    }
+    set cheby_dst "$dst_dir/cheby"
+
+    if {[llength [glob -nocomplain $proj_dir/list/*.chb]] > 0} {
+      if {![file exists $cheby_dst]} {
+        Msg Info "$cheby_dst directory not found, creating it..."
+        file mkdir $cheby_dst
+      }
+    } else {
+      Msg Error "No .chb files found in $proj_dir/list/"
+      exit
+    }
+
+    set cheby_tool $options(tool)
+    if {$cheby_tool eq ""} {
+      if {[info exists env(HOG_CHEBY_TOOL)]} {
+        set cheby_tool $env(HOG_CHEBY_TOOL)
+      } else {
+        set cheby_tool "cheby"
+      }
+    }
+
+    set cheby_profile $options(profile)
+    if {$cheby_profile eq ""} {
+      set cheby_profile "all"
+    }
+
+    set ret [GetRepoVersions $proj_dir $repo_path ""]
+    set sha     [lindex $ret 18]
+    set hex_ver [lindex $ret 19]
+    set ver [HexVersionToString $hex_ver]
+
+    set n_errors [CopyChebyFiles $proj_dir $repo_path $cheby_dst \
+                  $ver $sha $cheby_gen $cheby_profile $cheby_tool \
+                  $options(strict) $options(verbose)]
+
+    if {$n_errors > 0} {
+      Msg CriticalWarning "Cheby step finished with $n_errors error(s)."
+      exit 1
+    }
+    exit 0
+  }
+
   if {$do_list_file_parse == 1} {
     set proj_dir $repo_path/Top/$project_name
     set proj_list_dir $repo_path/Top/$project_name/list
-    GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb} $proj_list_dir $repo_path
+    GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb,.chb} $proj_list_dir $repo_path
     Msg Status "  "
     Msg Info "All Done."
     exit 0

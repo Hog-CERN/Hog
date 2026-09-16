@@ -3191,6 +3191,29 @@ proc GetGenericsFromConf {proj_dir} {
   return $generics_dict
 }
 
+## @brief Gets custom Verilog `define macros from hog.conf
+#
+# @param[in] proj_dir:    the top folder of the project
+# @return dict with defines
+#
+proc GetDefinesFromConf {proj_dir} {
+  set defines_dict [dict create]
+  set top_dir "Top/$proj_dir"
+  set conf_file "$top_dir/hog.conf"
+  set conf_index 0
+  Msg Debug "GetDefinesFromConf called with proj_dir=$proj_dir, top_dir=$top_dir"
+
+  if {[file exists $conf_file]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
+    if {[dict exists $properties defines]} {
+      set defines_dict [dict get $properties defines]
+    }
+  } else {
+    Msg Warning "File $conf_file not found."
+  }
+  return $defines_dict
+}
+
 ## @brief Gets the simulation sets from the project
 #
 # @param[in] project_name: the name of the project
@@ -3843,6 +3866,12 @@ proc GetProjectFiles {{project_file ""}} {
 
           if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
             set prop "93"
+          } elseif {[string equal [lindex $type 0] "VHDL"] && [string equal [lindex $type 1] "2019"]} {
+            # VHDL 2019 must be reported as an explicit property, unlike VHDL 2008
+            # (the default, kept propertyless below) so it matches the "2019" tag
+            # used in list files.
+            set type "VHDL"
+            set prop "2019"
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
@@ -4148,6 +4177,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints,
 #           libraries, submodules, external, ipbus xml, user ip repos, cheby (hash and ver)
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  global NOT_CLEAN_WARNED
   if {[catch {package require cmdline} ERROR]} {
     puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return 1
@@ -4425,7 +4455,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {
-    Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+    if {![info exists NOT_CLEAN_WARNED]} {
+      Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+      set NOT_CLEAN_WARNED 1
+    }
     set clean 0
   }
 
@@ -4603,6 +4636,7 @@ proc GetVer {path {force_develop 0}} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+  global NO_HOG_VER_TAG_WARNED
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -4637,7 +4671,10 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
         # Msg Debug "Chosen Tag $tag"
         set pattern {v\d+\.\d+\.\d+}
         if {![regexp $pattern $tag]} {
-          Msg CriticalWarning "No Hog version tags found in this repository."
+          if {![info exists NO_HOG_VER_TAG_WARNED]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set NO_HOG_VER_TAG_WARNED 1
+          }
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
@@ -6468,7 +6505,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
         if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
           Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
         }
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav
@@ -8488,6 +8525,25 @@ proc WriteConf {file_name config {comment ""}} {
   ::ini::close $f
 }
 
+## @brief Set custom Verilog `define macros from the [defines] section of hog.conf
+#
+#  @param[in]    design The name of the design
+#
+proc WriteDefines {design} {
+  set prj_defines [GetDefinesFromConf $design]
+  if {[dict size $prj_defines] > 0} {
+    if {[IsVivado]} {
+      set define_string [GenericToSimulatorString $prj_defines "Vivado"]
+      set_property verilog_define $define_string [current_fileset]
+      Msg Info "Setting Verilog defines from the \[defines\] section of hog.conf..."
+      Msg Debug "Detailed defines: $define_string"
+    } else {
+      set ide_name [GetIDEName]
+      Msg Error "Project $design has a \[defines\] section in hog.conf, but Verilog defines are not supported for $ide_name projects."
+    }
+  }
+}
+
 ## Set the generics property
 #
 #  @param[in]    mode if it's "create", the function will assume the project is being created
@@ -8564,6 +8620,9 @@ proc WriteGenerics {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
+
+  # Dealing with custom Verilog `define macros from the [defines] section of hog.conf
+  WriteDefines $design
 
   # Extract the generics from the top level source file
   if {[IsXilinx]} {

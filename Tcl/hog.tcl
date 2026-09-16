@@ -5910,7 +5910,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
         if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
           Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
         }
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav

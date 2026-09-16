@@ -3348,7 +3348,7 @@ proc GetProjectFiles {{project_file ""}} {
             # VHDL files (both 2008 and 93)
             if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]] == 0} {
               dict lappend srcsets $dict_fs "${lib}.src"
-            } 
+            }
             dict lappend libraries "${lib}.src" $f
           } elseif {[string first "IP" $type] != -1} {
             # IPs

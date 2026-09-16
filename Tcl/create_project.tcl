@@ -780,6 +780,11 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     "samples" "os" "xpfm" "no-boot-bsp"
   }
 
+  # XSCT/Vitis Classic switches that do not take a value
+  set platform_create_flags {
+    "no-boot-bsp" "prebuilt"
+  }
+
   Msg Info "Creating platform configuration..."
   append platform_options " -name $platform_name"
 
@@ -809,7 +814,13 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
     set p_lower [string tolower $p]
     if {[IsInList $p_lower $platform_create_options]} {
-      append platform_options " -$p_lower $v"
+      if {[IsVitisClassic] && [IsInList $p_lower $platform_create_flags]} {
+        if {[string is true -strict $v]} {
+          append platform_options " -$p_lower"
+        }
+      } else {
+        append platform_options " -$p_lower $v"
+      }
     } else {
       if {$p_lower ne "bif"} {
         Msg Warning "Attempting to use unknown platform option: $p_lower"
@@ -821,9 +832,14 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
   # If hw is not in platform conf, use vivado presynth xsa
   if {$xsa != ""} {
+    if {[IsRelativePath $xsa] == 1} {
+      set xsa [file normalize "$globalSettings::repo_path/$xsa"]
+    } else {
+      set xsa [file normalize $xsa]
+    }
     set platform_options "$platform_options -hw $xsa"
   } elseif {![dict exists $platform_conf hw]} {
-    set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+    set xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
     set platform_options "$platform_options -hw $xsa"
   } else {
     set platform_options "$platform_options"
@@ -886,10 +902,12 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     # Use Python script to create the platform with new Vitis Unified Python command-line tool
     set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
     Msg Info "Running Vitis Unified platform creation script..."
-    set platform_options_str "{ $platform_options }"
+    # The options contain spaces: pass them in the environment, as a command line
+    # argument they would be split by the Windows shell that runs vitis.bat
+    set ::env(HOG_VITIS_PLATFORM_OPTIONS) "{ $platform_options }"
     set error_msg "Failed to create platform $platform_name"
     if {![ExecuteVitisUnifiedCommand $python_script "create_platform" \
-        [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] \
+        [list "$globalSettings::build_dir/vitis_unified"] \
         $error_msg]} {
       return
     }
@@ -921,9 +939,12 @@ proc ConfigureApps {} {
           append app_config_str " -[string toupper $p] \{$v\}"
         }
         append app_config_str " }"
+        # The options contain spaces: pass them in the environment, as a command line
+        # argument they would be split by the Windows shell that runs vitis.bat
+        set ::env(HOG_VITIS_APP_OPTIONS) $app_config_str
         set error_msg "Failed to configure app $app_name"
         if {![ExecuteVitisUnifiedCommand $python_script "configure_app" \
-            [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] \
+            [list $app_name "$globalSettings::build_dir/vitis_unified"] \
             $error_msg]} {
           continue
         }
@@ -1046,6 +1067,95 @@ proc ConfigureApp {app_name app_conf} {
 
 proc AddAppFiles {} {
   AddHogFiles {*}[GetHogFiles -list_files {.src,.header} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
+}
+
+
+## @brief Configure the Vitis components (HLS, platforms and apps) of a project
+#
+# This is the work of the "-vitis_only" pass. It runs both from the standalone
+# "-vitis_only" entry point and, in the same interpreter, at the end of the
+# Vivado pass of a vivado_vitis_* project. It must not be run by spawning a
+# second Vivado: on Windows the nested process dies with an access violation
+# during Vivado start-up, before it can source any Hog script.
+#
+# @param[in] xsa_option The -xsa option, empty to derive the XSA from the Vivado project
+# @param[in] ide        The IDE name, as written in hog.conf
+# @param[in] post_file  The post-creation Tcl script, sourced if it exists
+#
+# @return 0 on success, 1 if no usable XSA could be found
+#
+proc ConfigureVitisComponents {xsa_option ide post_file} {
+
+  if {[IsVitisUnified]} {
+    set vitis_ws [file normalize "$globalSettings::build_dir/vitis_unified"]
+    if {[file exists $vitis_ws]} {
+      Msg Info "Removing existing Vitis Unified workspace $vitis_ws..."
+      file delete -force $vitis_ws
+    }
+    file mkdir $vitis_ws
+  }
+
+  set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
+  set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
+  set has_apps [expr {[dict size [dict filter $globalSettings::PROPERTIES key {app:*}]] > 0}]
+
+  if {$has_hls} {
+    Msg Info "Found HLS component(s) in configuration, configuring HLS..."
+    ConfigureHlsComponents
+  }
+
+  if {!$has_platforms && !$has_apps} {
+    Msg Info "vitis unified HLS-only project, skipping Vivado project setup."
+    return 0
+  }
+
+  set xsa_path $xsa_option
+
+  if {$xsa_path == ""} {
+    if {[string match "vivado_*" [string tolower $ide]]} {
+      # vivado_vitis project: generate pre-synth XSA from existing Vivado project
+      set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
+      if {[file exists $xpr_file]} {
+        Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
+        open_project $xpr_file
+        set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+        GenerateStandaloneXciTargets
+        write_hw_platform -fixed -force -file $xsa_path
+        Msg Info "Pre-synth XSA generated: $xsa_path"
+        close_project
+      } else {
+        # tclint-disable-next-line line-length
+        Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
+        return 1
+      }
+    } else {
+      # Standalone vitis project: XSA is mandatory for platform/app
+      Msg Error "This is a $ide only project with platform/app sections, an XSA file must be provided via the -xsa option."
+      return 1
+    }
+  } elseif {[IsRelativePath $xsa_path] == 1} {
+    # Relative -xsa is repo-relative; do not resolve against Hog/Tcl (cwd)
+    set xsa_path [file normalize "$globalSettings::repo_path/$xsa_path"]
+  } else {
+    set xsa_path [file normalize $xsa_path]
+  }
+
+  Msg Info "Configuring platforms with XSA: $xsa_path"
+  ConfigurePlatforms "$xsa_path"
+  ConfigureApps
+  AddAppFiles
+
+  if {[file exists $post_file]} {
+    if {[string match "vivado_*" [string tolower $ide]]} {
+      Msg Info "Skipping post-creation.tcl in -vitis_only pass for $ide \
+      (already executed during Vivado project creation)."
+    } else {
+      Msg Info "Found post-creation Tcl script $post_file, executing it..."
+      source $post_file
+    }
+  }
+
+  return 0
 }
 
 ## @brief Configure HLS components defined in hog.conf [hls:*] sections
@@ -1384,63 +1494,9 @@ proc CreateProject {args} {
   InitProject $options(vitis_only)
 
   if {([IsVitisClassic] || [IsVitisUnified]) && $options(vitis_only) == 1} {
-    # Check if this project has HLS components
-    set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
-    set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
-    set has_apps [expr {[dict size [dict filter $globalSettings::PROPERTIES key {app:*}]] > 0}]
-
-    if {$has_hls} {
-      Msg Info "Found HLS component(s) in configuration, configuring HLS..."
-      ConfigureHlsComponents
+    if {[ConfigureVitisComponents $options(xsa) $ide $post_file] != 0} {
+      return 1
     }
-
-    if {!$has_platforms && !$has_apps} {
-      Msg Info "vitis unified HLS-only project, skipping Vivado project setup."
-      return
-    }
-
-    if {$has_platforms || $has_apps} {
-      set xsa_path $options(xsa)
-
-      if {$xsa_path == ""} {
-        if {[string match "vivado_*" [string tolower $ide]]} {
-          # vivado_vitis project: generate pre-synth XSA from existing Vivado project
-          set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
-          if {[file exists $xpr_file]} {
-            Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
-            open_project $xpr_file
-            set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
-            GenerateStandaloneXciTargets
-            write_hw_platform -fixed -force -file $xsa_path
-            Msg Info "Pre-synth XSA generated: $xsa_path"
-            close_project
-          } else {
-            # tclint-disable-next-line line-length
-            Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
-            return 1
-          }
-        } else {
-          # Standalone vitis project: XSA is mandatory for platform/app
-          Msg Error "This is a $ide only project with platform/app sections, an XSA file must be provided via the -xsa option."
-          return 1
-        }
-      }
-
-      Msg Info "Configuring platforms with XSA: $xsa_path"
-      ConfigurePlatforms "$xsa_path"
-      ConfigureApps
-      AddAppFiles
-      if {[file exists $post_file]} {
-        if {[string match "vivado_*" [string tolower $ide]]} {
-          Msg Info "Skipping post-creation.tcl in -vitis_only pass for $ide \
-          (already executed during Vivado project creation)."
-        } else {
-          Msg Info "Found post-creation Tcl script $post_file, executing it..."
-          source $post_file
-        }
-      }
-    }
-
     return
   }
 
@@ -1525,7 +1581,7 @@ proc CreateProject {args} {
       $globalSettings::repo_path \
       $globalSettings::HOG_EXTERNAL_PATH \
     ] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes \
-      xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+      xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers cheby_hash cheby_ver
 
     set this_commit [GetSHA]
 
@@ -1548,7 +1604,7 @@ proc CreateProject {args} {
       $top_hash $top_ver $hog_hash $hog_ver \
       $cons_ver $cons_hash $libs $vers $hashes \
       $ext_names $ext_hashes $user_ip_repos $user_ip_vers \
-      $user_ip_hashes $flavour $xml_ver $xml_hash
+      $user_ip_hashes $flavour $xml_ver $xml_hash $cheby_ver $cheby_hash
     cd $old_path
   }
 
@@ -1567,37 +1623,41 @@ proc CreateProject {args} {
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
     if {$options(xsa) == ""} {
-      set presynth_xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
-      set xsa_opt "-xsa $presynth_xsa"
+      set vitis_xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+    } elseif {[IsRelativePath $options(xsa)] == 1} {
+      set vitis_xsa [file normalize "$globalSettings::repo_path/$options(xsa)"]
     } else {
-      if {[IsRelativePath $options(xsa)] == 0} {
-        set xsa_opt "-xsa $options(xsa)"
-      } else {
-        set xsa_opt "-xsa $globalSettings::repo_path/$options(xsa)"
-      }
+      set vitis_xsa [file normalize $options(xsa)]
     }
 
     if {$globalSettings::vitis_classic == 1} {
       # Launch xsct to build the project
-      set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::project_name"
+      set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C -xsa $vitis_xsa -vitis_only $globalSettings::project_name"
       Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
       set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
       if {$ret != 0} {
-        Msg Error "xsct (vitis classic) returned an error state."
+        Msg Error "xsct (vitis classic) returned an error state: $result"
       }
     } elseif {$globalSettings::vitis_unified == 1} {
-      # Launch vivado in batch mode to build the project
-      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace \
-        -source $globalSettings::tcl_path/launch.tcl \
-        -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
-      Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
-      set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
+      Msg Info "Configuring Vitis Unified components..."
+      set previous_pass 0
+      if {[info exists globalSettings::vitis_only_pass]} {
+        set previous_pass $globalSettings::vitis_only_pass
+      }
+      # Make AddHogFiles add the sources to the Vitis apps rather than to the
+      # Vivado project, which already has them
+      set globalSettings::vitis_only_pass 1
+      set ret [catch {ConfigureVitisComponents $vitis_xsa $ide $post_file} result]
+      set globalSettings::vitis_only_pass $previous_pass
       if {$ret != 0} {
-        Msg Error "vivado (vitis unified) returned an error state."
+        Msg Error "Failed to configure the Vitis Unified components: $result"
+      } elseif {$result != 0} {
+        Msg Error "Failed to configure the Vitis Unified components."
       }
     }
   }
 
 
   Msg Info "Project $globalSettings::project_name created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
+  Notify Info "Created project $globalSettings::project_name."
 }

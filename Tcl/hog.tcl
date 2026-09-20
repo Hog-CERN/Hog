@@ -2503,7 +2503,7 @@ proc ExtractFilesSection {file_data} {
 # @return         a list containing: Major minor patch v.
 #
 proc ExtractVersionFromTag {tag} {
-  if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
+  if {[regexp {^(?:b(\d+))?v0*(\d+)\.0*(\d+).0*(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
     if {$mr eq ""} {
       set mr 0
     }

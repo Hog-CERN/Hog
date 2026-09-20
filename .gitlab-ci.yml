@@ -513,3 +513,5 @@ claude-review:
     when: always
     paths: [review.md]
     expire_in: 1 week
+  interruptible: true
+

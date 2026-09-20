@@ -471,7 +471,7 @@ create_release_note:
 #   stage: tag
 
 claude-review:
-  stage: ai
+  stage: merge_checks
   image: node:24-alpine3.21
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

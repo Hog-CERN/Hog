@@ -410,7 +410,7 @@ jobs:
                 fi;
                 if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
                   cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
-                  cp Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+                  cp Projects/$PROJECT_NAME/output_files/versions* bin/$PROJECT_NAME*/;
                 fi;
               else
                 echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
@@ -426,7 +426,7 @@ jobs:
                   if ls bin/$PROJECT_NAME*/vitis_hls/*/timing_* bin/$PROJECT_NAME*/*/timing_* >/dev/null 2>&1; then
                     cat bin/$PROJECT_NAME*/vitis_hls/*/timing_* bin/$PROJECT_NAME*/*/timing_* 2>/dev/null >> note.md;
                   fi;
-                  if ls bin/$PROJECT_NAME*/timing_error.txt bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
+                  if ls bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1 || ls bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1 || ls bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
                     echo "Copying the Project folder for debugging purposes inside bin/";
                     cp -r Projects/ bin/Projects;
                     if [ ${{ inputs.HOG_FAIL_TIMING}} ]; then

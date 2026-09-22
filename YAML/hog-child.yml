@@ -321,13 +321,7 @@
           if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
-            echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
-            if [ -e DebugProjects ]; then
-              echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
-            else
-              mv $CI_PROJECT_DIR/Projects $CI_PROJECT_DIR/DebugProjects;
-            fi;
+          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
             if [ -n "$HOG_FAIL_TIMING" ] && [ "$HOG_FAIL_TIMING" = '1' ]; then
               echo "Hog-CI(error) - Project $PROJECT_NAME failed timing constraints. Failing the job as requested.";
               exit 1;
@@ -345,7 +339,6 @@
       - bin
       - "*.log"
       - DCPs
-      - DebugProjects
       - "${HOG_ADDITIONAL_ARTIFACT_PATH:-.hog-no-additional-artifacts}"
     expire_in: 30 day
   interruptible: true

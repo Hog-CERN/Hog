@@ -152,6 +152,7 @@ file mkdir $dst_dir/reports
 
 #check list files and project properties
 set confDict [dict create]
+set allow_fail_on_check 0
 set allow_fail_on_conf 0
 set allow_fail_on_list 0
 set allow_fail_on_git 0
@@ -159,6 +160,8 @@ set full_diff_log 0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
   set allow_fail_on_check [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CHECK" 0]
+  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
+  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
   set allow_fail_on_git [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT" 0]
   set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG" 0]
 }
@@ -176,9 +179,16 @@ if {[IsVivado] || [IsSynplify] || [IsDiamond]} {
   }
   source $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
-    Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
-    set commit 0000000
-    set version 00000000
+    # SrcListErrorCnt, ConListErrorCnt and ConfErrorCnt are set by check_list_files.tcl
+    set list_mismatch [expr {$SrcListErrorCnt + $ConListErrorCnt > 0}]
+    set conf_mismatch [expr {$ConfErrorCnt > 0}]
+    if {($list_mismatch && !$allow_fail_on_list) || ($conf_mismatch && !$allow_fail_on_conf)} {
+      Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
+      set commit 0000000
+      set version 00000000
+    } else {
+      Msg Warning "Project list or hog.conf mismatch found, but ignored because ALLOW_FAIL_ON_LIST/ALLOW_FAIL_ON_CONF is set in hog.conf."
+    }
   }
 } elseif {[IsQuartus]} {
   # Quartus

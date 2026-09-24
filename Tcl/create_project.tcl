@@ -466,6 +466,11 @@ proc ConfigureImplementation {} {
           AddFile $globalSettings::post_impl [get_filesets -quiet utils_1]
         }
         set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+        # Move post-implementation after the post_route_phys_opt_design step if it is enabled
+        if {[get_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED $obj]} {
+          set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST $globalSettings::post_impl $obj
+          set_property STEPS.ROUTE_DESIGN.TCL.POST "" $obj
+        }
       }
     } elseif {[IsQuartus]} {
       #QUARTUS only
@@ -1294,8 +1299,6 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
     set globalSettings::$var $default_value
   }
 }
-
-################################################################################################################################################################
 
 proc CreateProject {args} {
   global env

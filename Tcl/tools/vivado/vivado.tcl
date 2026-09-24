@@ -1,76 +1,70 @@
 namespace eval Tools::Vivado {
 
-  variable Manifest {
+  Tools::RegisterTool [namespace current] {
     name        "Vivado"
     vendor      "AMD/Xilinx"
     description "AMD/Xilinx Vivado (and Vivado-Vitis classic + legacy PlanAhead) FPGA design suite."
-    aliases     {vivado vivado_vitis_classic planahead}
-    Flows {
-      CREATE {
-        aliases {C}
-        description "Create the project, replace it if already existing."
-        options {
-          {ext_path.arg   "" "Sets the absolute path for the external libraries."}
-          {lib.arg        "" "Simulation library path, compiled or to be compiled"}
-          {vivado_only       "If set, and project is vivado-vitis, vitis project will not be created."}
-          {vitis_only        "If set, and project is vivado-vitis create only vitis project. If an xsa is not given, a pre-synth xsa will be created."}
-          {verbose           "If set, launch the script in verbose mode"}
-        }
-        stages  {
-          CreateProject
-        }
-      }
-
-      SYNTHESIS {
-        aliases {synth synthesize}
-        stages  {@CREATE Synthesize}
-        description "Run synthesis only, create the project if not existing."
-        options {
-          {recreate        "If set, the project will be re-created if it already exists."}
-          {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
-          {njobs.arg 4     "Number of jobs."}
-          {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
-        }
-      }
-
-      IMPLEMENTATION {
-        aliases {i impl implement}
-        description "Runs only the implementation, the project must already exist and be synthesised."
-        stages  {@SYNTHESIS Implement}
-        options {
-          {no_bitstream    "If set, the bitstream file will not be produced."}
-        }
-      }
-
-      WORKFLOW {
-        aliases {w work cw}
-        description "Runs the full workflow, creates the project if not existing."
-        options {
-          {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
-                            project this command can be used to generate the boot artifacts including the ELF file(s) without running the\
-                            full Vivado workflow."}
-          {synth_only      "If set, only the synthesis will be performed."}
-          {impl_only       "If set, only the implementation will be performed. This assumes synthesis was already done."}
-        }
-        stages  {@IMPLEMENTATION GenerateBitstream}
-      }
-    }
-
-
+    ref_name    {vivado vivado_vitis_classic planahead}
   }
+
+  RegisterFlow CREATE {
+    aliases {C}
+    description "Create the project, replace it if already existing."
+    options {
+      {ext_path.arg   "" "Sets the absolute path for the external libraries."}
+      {lib.arg        "" "Simulation library path, compiled or to be compiled"}
+      {vivado_only       "If set, and project is vivado-vitis, vitis project will not be created."}
+      {vitis_only        "If set, and project is vivado-vitis create only vitis project. If an xsa is not given, a pre-synth xsa will be created."}
+      {verbose           "If set, launch the script in verbose mode"}
+    }
+    stages  {
+      CreateProject
+    }
+  }
+
+  RegisterFlow SYNTHESIS {
+    aliases {synth synthesize}
+    stages  {@CREATE Synthesize}
+    description "Run synthesis only, create the project if not existing."
+    options {
+      {recreate        "If set, the project will be re-created if it already exists."}
+      {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
+      {njobs.arg 4     "Number of jobs."}
+      {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
+    }
+  }
+
+  RegisterFlow IMPLEMENTATION {
+    aliases {i impl implement}
+    description "Runs only the implementation, the project must already exist and be synthesised."
+    stages  {@SYNTHESIS Implement}
+    options {
+      {no_bitstream    "If set, the bitstream file will not be produced."}
+    }
+  }
+
+  RegisterFlow WORKFLOW {
+    aliases {w work cw}
+    description "Runs the full workflow, creates the project if not existing."
+    options {
+      {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
+                        project this command can be used to generate the boot artifacts including the ELF file(s) without running the\
+                        full Vivado workflow."}
+      {synth_only      "If set, only the synthesis will be performed."}
+      {impl_only       "If set, only the implementation will be performed. This assumes synthesis was already done."}
+    }
+    stages  {@IMPLEMENTATION GenerateBitstream}
+  }
+
+
+  RegisterStage Synthesize        { description "Run the synthesis run." }
+  RegisterStage CreateProject     { description "Create the Vivado project from the Top/ description." }
+  RegisterStage Implement         { description "Run the implementation run." }
+  RegisterStage GenerateBitstream { description "Write the bitstream." }
 
 
   #Add vivado-only commands
   source [file join [file dirname [info script]] commands.tcl]
-
-  proc IsActive {} {
-    if {[info commands version] eq ""} { return 0 }
-    set v [version]
-    return [expr {
-      [string first "Vivado"    $v] == 0 ||
-      [string first "PlanAhead" $v] == 0
-    }]
-  }
 
   proc Launch {} {
     set script [Launcher::Get script]
@@ -133,14 +127,13 @@ namespace eval Tools::Vivado {
   proc CreateProject {} {
 
     FlowControl::Require VIVADO_INITIALIZED
-
     CurrentProject::SaveJsonToFile [Repo::Get repo_path]/last_run.json 1
 
     if {[file exists [CurrentProject::Get project_file]] && [Launcher::GetOr options recreate 1] == 0} {
       Msg Info "Project file found at [CurrentProject::Get project_file], opening project..."
       #file mkdir "[CurrentProject::Get project_file]/[CurrentProject::Get project_name].gen/sources_1"
       OpenProject [CurrentProject::Get project_file] [Repo::Get repo_path]
-      FlowControl::Produce PROJECT_CREATED
+      FlowControl::Produce PROJECT_OPEN
       return
     }
 
@@ -152,7 +145,8 @@ namespace eval Tools::Vivado {
       Msg Error "Failed to create project: $_err with options: $_opts"
       Msg Warning "Failed to Create Project"
     } else {
-      FlowControl::Produce PROJECT_CREATED
+      FlowControl::Produce PROJECT_OPEN
+      FlowControl::Produce PROJECT_CREATED "[CurrentProject::Get project_file]"
     }
 
     set obj [get_projects [file tail [CurrentProject::Get design]]]
@@ -184,7 +178,7 @@ namespace eval Tools::Vivado {
 
 
   proc ConfigureProperties {} {
-    FlowControl::Require PROJECT_CREATED
+    FlowControl::Require PROJECT_OPEN
     set user_repo "0"
     Msg Info "Setting project-wide properties..."
     set proj_props [CurrentProject::Get config main]
@@ -264,8 +258,8 @@ namespace eval Tools::Vivado {
 
 
   proc AddProjectFiles {} {
-    FlowControl::RequireOr PROJECT_CREATED {
-      Msg Info "Project not found; creating it first..."
+    FlowControl::RequireOr PROJECT_OPEN {
+      Msg Info "Project not open; run CreateProject first..."
     }
 
     if {[get_filesets -quiet sources_1] eq ""} { create_fileset -srcset    sources_1 }
@@ -706,7 +700,7 @@ namespace eval Tools::Vivado {
   }
 
   proc Implement {} {
-    FlowControl::Require SYNTHESIS_DONE PROJECT_CREATED
+    FlowControl::Require SYNTHESIS_DONE PROJECT_OPEN
     Msg Info "Starting implementation flow..."
 
     set no_reset     [Launcher::Get options no_reset     ]

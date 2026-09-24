@@ -130,7 +130,7 @@ namespace eval DataStore {
 
       proc Size {} {
         variable _ctx
-        return [tdict size _ctx]
+        return [tdict size $_ctx]
       }
 
       proc Keys {args} {

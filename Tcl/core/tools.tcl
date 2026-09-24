@@ -1,18 +1,20 @@
 
 namespace eval Tools {
 
+  # Register bare tool command
+  Commands::RegisterCommand TOOL {
+    description  "Every registered tool. Usage: <tool>" 
+    aliases tools 
+  }
 
-  # Manifest fields
+  # Manifest fields - identity/metadata only.
   variable _fields {
     { name        ""  required}
-    { aliases   ""    optional}
-
+    { ref_name   ""   optional}
     { vendor      ""  optional}
     { description ""  optional}
     { version     ""  optional}
     { features    {}  optional}
-    { flows       {}  optional}
-    { commands    {}  optional}
     { custom      0   optional}
     { _source_path "" optional}
     { _git         {} optional}
@@ -37,15 +39,12 @@ namespace eval Tools {
     return $result
   }
 
+  # The booting parent stamps HOG_ACTIVE_TOOL before exec'ing an IDE child, so a
+  # fresh process just reads its identity instead of trying to figure it out.
+  # In-process tools never reach here - their Launch calls ActiveTool::Set direct.
   proc detectActiveTool {} {
-    foreach ns [namespace children ::Tools] {
-      if {[info commands ${ns}::IsActive] eq ""} continue
-      if {[catch {set result [${ns}::IsActive]} err]} continue
-      if {$result} {
-        return $ns
-      }
-    }
-    return ""
+    if {![info exists ::env(HOG_ACTIVE_TOOL)] || $::env(HOG_ACTIVE_TOOL) eq ""} { return "" }
+    return [ResolveAlias $::env(HOG_ACTIVE_TOOL)]
   }
 
   proc PrintTools {} {
@@ -64,15 +63,35 @@ namespace eval Tools {
   }
 
 
+  # Throws on failure (errorcode {HOG_TOOL_FAILED <exit>}) so a failed IDE child
+  # can't surface as a success. The top-level entry maps that code to its own
+  # exit status - see launch.tcl.
   proc Launch {tool} {
     set tool_ns [ResolveAlias $tool]
     if {$tool_ns eq "" || [info commands ${tool_ns}::Launch] eq ""} {
-      Msg Error "Tool '$tool' not found or has no Launch proc"
-      return
+      return -code error -errorcode {HOG_TOOL_FAILED 1} \
+        "Tool '$tool' not found or has no Launch proc"
     }
-    if {[catch {${tool_ns}::Launch} result]} {
-      Msg Error "Failed to launch tool '$tool': $result"
-      return
+    # Stamp identity for any IDE child this Launch execs; restore so a nested
+    # boot can't leave the parent mislabeled.
+    set _had  [info exists ::env(HOG_ACTIVE_TOOL)]
+    set _prev [expr {$_had ? $::env(HOG_ACTIVE_TOOL) : ""}]
+    set ::env(HOG_ACTIVE_TOOL) [string tolower [namespace tail $tool_ns]]
+    set _code [catch {${tool_ns}::Launch} result _opts]
+    if {$_had} { set ::env(HOG_ACTIVE_TOOL) $_prev } else { unset ::env(HOG_ACTIVE_TOOL) }
+    if {$_code} {
+      # A non-zero IDE child makes exec throw with -errorcode
+      # {CHILDSTATUS <pid> <exit>}; carry that exit code up rather than
+      # flattening every failure to 1.
+      set _child 1
+      if {[dict exists $_opts -errorcode]} {
+        set _ec [dict get $_opts -errorcode]
+        if {[lindex $_ec 0] eq "CHILDSTATUS" && [llength $_ec] >= 3} {
+          set _child [lindex $_ec 2]
+        }
+      }
+      return -code error -errorcode [list HOG_TOOL_FAILED $_child] \
+        "Tool '$tool' failed (exit $_child): $result"
     }
     return $result
   }
@@ -86,8 +105,8 @@ namespace eval Tools {
     foreach ns [namespace children ::Tools] {
       if {[string tolower [namespace tail $ns]] eq $needle} { return $ns }
       if {[catch {set m [${ns}::GetManifest]} err]} { continue }
-      if {[dict exists $m aliases]} {
-        foreach iname [dict get $m aliases] {
+      if {[dict exists $m ref_name]} {
+        foreach iname [dict get $m ref_name] {
           if {[string tolower $iname] eq $needle} { return $ns }
         }
       }
@@ -98,6 +117,7 @@ namespace eval Tools {
   # Register tools from a directory
   # looks for ./<tool>/<tool>.tcl or  ./<tool>/main.tcl
   # Pass -custom to mark every tool sourced from this dir as user-defined.
+  # Each file self-registers via RegisterTool
   proc RegisterFromDir {dir args} {
     Msg Debug "Loading tools from $dir"
     if {![file isdirectory $dir]} { return }
@@ -112,203 +132,108 @@ namespace eval Tools {
         Msg Warning "Tool directory '$tool_name' has no '$tool_name.tcl' or 'main.tcl', skipping"
         continue
       }
-      set _pre [namespace children ::Tools]
-      if {[catch {namespace eval :: [list source $entry]} err]} {
-        Msg Warning "failed to source [file tail $entry] for tool '$tool_name': $err"
-        continue
-      }
-      foreach ns [namespace children ::Tools] {
-        if {$ns in $_pre} continue
-        if {![info exists ${ns}::Manifest]} continue
-        namespace eval $ns [list variable Manifest]
-        namespace eval $ns [list dict set Manifest _source_path $entry]
-
-        set git_info {
-          commit   "unknown" \
-          date     "unknown" \
-          ver      "unknown" \
-        }
-
-        set cwd [pwd]
-        cd [file dirname $entry]
-        set git_ret [GitRet [list log -n 1 --decorate "--format=commit {%h} tag {%d} date {%ad}" --date=short] .]
-        cd $cwd
-
-        if {[lindex $git_ret 0] == 0  && [llength [lindex $git_ret 1]]> 0} {
-          set git_info [lindex $git_ret 1]
-          set _hog_tag ""
-          set _ver_tag ""
-          foreach t [split [dict get $git_info tag] ","] {
-            set t [string trim $t " \t()"]
-            if {$_hog_tag eq "" && [regexp {^tag:\s+(Hog\d{4}\.\d+(?:\.\d+)*)$} $t -> _found]} {
-              set _hog_tag $_found
-            } elseif {$_ver_tag eq "" && [regexp {^tag:\s+(v\d+(?:\.\d+)+)$} $t -> _found]} {
-              set _ver_tag $_found
-            }
-          }
-
-          if {$_hog_tag ne ""} {
-            dict set git_info ver $_hog_tag
-          } elseif {$_ver_tag ne ""} {
-            dict set git_info ver $_ver_tag
-          } else {
-            dict set git_info ver "unknown"
-          }
-        }
-
-
-        namespace eval $ns [list dict set Manifest _git $git_info]
-        if {$is_custom} {
-          namespace eval $ns [list dict set Manifest custom 1]
-        }
-      }
+      Hog::SourceFile $entry $is_custom "tool '$tool_name'"
     }
   }
 
-  # Build a raw command-node dict for the flow. Used to add flow to command registry
-  proc _flowCmdDict {tool_ns flow_name flow_tdict} {
-    set aliases [list]
-    tlist foreachval a [tdict get $flow_tdict aliases] { lappend aliases $a }
-    return [dict create \
-      aliases       $aliases \
-      description   [tdict getval $flow_tdict description] \
-      options       [Flow::GetFlowOptions $tool_ns $flow_name] \
+  # Git commit/tag info for whatever entry file a tool was sourced from.
+  proc _gitInfoFor {entry} {
+    set git_info { commit "unknown" date "unknown" ver "unknown" }
+    if {$entry eq ""} { return $git_info }
+    set cwd [pwd]
+    cd [file dirname $entry]
+    set git_ret [GitRet [list log -n 1 --decorate "--format=commit {%h} tag {%d} date {%ad}" --date=short] .]
+    cd $cwd
+
+    if {[lindex $git_ret 0] == 0 && [llength [lindex $git_ret 1]] > 0} {
+      set git_info [lindex $git_ret 1]
+      set _hog_tag ""
+      set _ver_tag ""
+      foreach t [split [dict get $git_info tag] ","] {
+        set t [string trim $t " \t()"]
+        if {$_hog_tag eq "" && [regexp {^tag:\s+(Hog\d{4}\.\d+(?:\.\d+)*)$} $t -> _found]} {
+          set _hog_tag $_found
+        } elseif {$_ver_tag eq "" && [regexp {^tag:\s+(v\d+(?:\.\d+)+)$} $t -> _found]} {
+          set _ver_tag $_found
+        }
+      }
+      if {$_hog_tag ne ""}      { dict set git_info ver $_hog_tag } \
+      elseif {$_ver_tag ne ""} { dict set git_info ver $_ver_tag } \
+      else                     { dict set git_info ver "unknown" }
+    }
+    return $git_info
+  }
+
+  # Registers the tool namespace calling this 
+  # creates a command group for the tool, 
+  # injects RegisterCommand/RegisterFlow/RegisterStage
+  proc RegisterTool {ns manifest_dict} {
+    set tool_name [namespace tail $ns]
+    if {[catch {_validate_manifest $tool_name $manifest_dict} validated]} {
+      Msg Warning "Skipping tool '$tool_name': $validated"
+      return
+    }
+    set is_custom [set ::Hog::_loading_custom]
+    dict set validated custom       $is_custom
+    dict set validated _source_path [set ::Hog::_loading_source]
+    dict set validated _git         [_gitInfoFor [set ::Hog::_loading_source]]
+
+    namespace eval $ns [list variable Manifest $validated]
+    InjectCommonProcs $ns
+
+    set tool_key    [string toupper $tool_name]
+    set tool_canon  "TOOL.$tool_key"
+    set ref_aliases [expr {[dict exists $validated ref_name] ? [dict get $validated ref_name] : {}}]
+
+    Commands::RegisterCommand $tool_canon [dict create \
+      description [dict get $validated description] \
+      aliases     $ref_aliases \
+    ] {*}[expr {$is_custom ? "-custom" : ""}] -source [set ::Hog::_loading_source]
+
+    Commands::AddAlias $tool_key $tool_canon
+    foreach a $ref_aliases { Commands::AddAlias $a $tool_canon }
+  }
+
+  # Register Stage to tool's command tree, registered under TOOL.<TOOL>.STAGE
+  #
+  #   RegisterStage Implement {produces {...} requires {...}}
+  #   RegisterStage Implement {produces {...} requires {...}} { <body> }
+  # 
+  proc RegisterStage {tool_ns name spec args} {
+    if {[llength $args] > 1} {
+      Msg Warning "RegisterStage '$name': expected 'name spec ?body?'"
+      return
+    }
+    set tool_short [string tolower [namespace tail $tool_ns]]
+    if {[llength $args] == 1} {
+      proc ${tool_ns}::${name} {} [lindex $args 0]
+    }
+
+    set raw [dict create \
+      script        "${tool_ns}::${name}" \
+      ide           $tool_short \
       requires_proj true \
-      ide           [string tolower [namespace tail $tool_ns]] \
-      flow_ref      $flow_name \
     ]
+
+    foreach k {description help aliases options produces requires} {
+      if {[dict exists $spec $k]} { dict set raw $k [dict get $spec $k] }
+    }
+
+    set tool_key    [string toupper [namespace tail $tool_ns]]
+    set stage_group "TOOL.$tool_key.STAGE"
+
+    if {[Commands::GetCommand $stage_group] eq {}} {
+      Commands::RegisterCommand $stage_group [dict create description \
+        "Individual stages of [namespace tail $tool_ns]'s flows.\
+         Usage: $tool_short stage <stage> <project>"]
+    }
+    Commands::RegisterCommand "TOOL.$tool_key.STAGE.$name" $raw
   }
 
   proc Init {} {
-    #set _required_procs {IsActive Launch Initialize}
-    set _required_procs {}
-    
-    foreach ns [namespace children ::Tools] {
-      set tool_name [namespace tail $ns]
-      if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {
-        Msg Warning "$tool_name does not define a Manifest, skipping"
-        namespace delete $ns
-        continue
-      }
-      if {[catch {_validate_manifest $tool_name $m} validated]} {
-        Msg Warning "Skipping tool: $validated"
-        namespace delete $ns
-        continue
-      }
-
-      namespace eval $ns [list variable Manifest $validated]
-
-      set missing {}
-      foreach required $_required_procs {
-        if {[info commands ${ns}::${required}] eq ""} {
-          lappend missing $required
-        }
-      }
-      if {[llength $missing] > 0} {
-        Msg Warning "$tool_name is missing required procs: [join $missing {, }], skipping"
-        namespace delete $ns
-        continue
-      }
-
-      InjectCommonProcs $ns
-
-      if {[dict exists $validated flows] && [llength [dict get $validated flows]] > 0} {
-        Flow::RegisterFlowDict $ns [dict get $validated flows]
-      }
-    }
-
     set active [detectActiveTool]
     if {$active ne ""} {
       ::ActiveTool::Set $active
-    }
-  }
-
-  # Create commands out of Tools
-  # flows and commands are added under the {tool <tool>} tree
-  proc BuildCommandTree {} {
-    set tool_subs [dict create]
-    foreach ns [namespace children ::Tools] {
-      set tool_name [namespace tail $ns]
-      if {[catch {set validated [${ns}::GetManifest]}]} { continue }
-
-      # Register every tool under the TOOL subcommand tree
-      set tool_key [string toupper $tool_name]
-      set ref_aliases [list]
-      if {[dict exists $validated aliases]} {
-        foreach rn [dict get $validated aliases] { lappend ref_aliases $rn }
-      }
-
-      # Command subcommands from Manifest.commands.
-      set _subs [dict create]
-      set _cmd_aliases [list]
-      if {[dict exists $validated commands]} {
-        dict for {ck cv} [dict get $validated commands] {
-          if {![dict exists $cv ide]} {
-            dict set cv ide $tool_name
-          }
-          dict set _subs [string toupper $ck] $cv
-          lappend _cmd_aliases [string toupper $ck]
-          if {[dict exists $cv aliases]} {
-            foreach a [dict get $cv aliases] { lappend _cmd_aliases [string toupper $a] }
-          }
-        }
-      }
-
-
-      # For flows, we want to register them in two places incase of command collision
-      #  (a) tool <t> <flow>       - for ease of use, commands can override this path
-      #  (b) tool <t> flow <flow>  - command shouldn't collide with this one
-      set _flow_subs [dict create]
-      tdict for {fname fnode} [Flow::GetToolFlows $ns] {
-        set _fkey  [string toupper $fname]
-        set _fcmd  [_flowCmdDict $ns $fname $fnode]
-        dict set _flow_subs $_fkey $_fcmd
-
-        set _collides 0
-        foreach _fa [concat [list $_fkey] [dict get $_fcmd aliases]] {
-          if {[string toupper $_fa] in $_cmd_aliases} { set _collides 1; break }
-        }
-        if {$_collides} {
-          Msg Warning "Tool '$tool_name': flow '$fname' collides with a command; reach it via 'tool $tool_name flow $fname'"
-        } else {
-          dict set _subs $_fkey $_fcmd
-        }
-      }
-      if {[dict size $_flow_subs] > 0} {
-        dict set _subs FLOW [dict create \
-          description "Flows provided by $tool_name. Usage: tool $tool_name flow <flow> <project>" \
-          subcommands $_flow_subs \
-        ]
-      }
-
-      set tool_subs_entry [dict create \
-        description [dict get $validated description] \
-        aliases     $ref_aliases \
-        script      "Help::RenderTool [string tolower $tool_name]" \
-      ]
-      if {[dict size $_subs] > 0} {
-        dict set tool_subs_entry subcommands $_subs
-      }
-      dict set tool_subs $tool_key $tool_subs_entry
-    }
-
-    if {[dict size $tool_subs] > 0} {
-      Commands::RegisterCommand TOOL [dict create \
-        description   "Tool-scoped commands. Usage: ./Hog/Do TOOL <tool> <command> \[project\] \[options\]" \
-        passthrough   true \
-        subcommands   $tool_subs \
-        script {
-          set _alias [lindex $::argv 1]
-          if {$_alias eq ""} {
-            Help::RenderPath {TOOL}
-          } else {
-            set _avail {}
-            foreach ns [lsort [namespace children ::Tools]] { lappend _avail [string tolower [namespace tail $ns]] }
-            Msg Error "Unknown tool '$_alias'. Available tools: [join $_avail {, }]"
-            exit 1
-          }
-        } \
-      ]
     }
   }
 
@@ -322,8 +247,8 @@ namespace eval Tools {
     set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
     foreach ns [namespace children ::Tools] {
       if {[catch {set m [${ns}::GetManifest]} err]} { continue }
-      if {![dict exists $m aliases]} { continue }
-      foreach iname [dict get $m aliases] {
+      if {![dict exists $m ref_name]} { continue }
+      foreach iname [dict get $m ref_name] {
         if {[string tolower $iname] eq $ide_name} {
           return $ns
         }
@@ -338,11 +263,6 @@ namespace eval Tools {
   proc InjectCommonProcs {tool_ns} {
     namespace eval $tool_ns {
 
-      
-      if {[info commands IsActive] eq ""} {
-        proc IsActive {} { return 0 }
-      }
-
       if {[info commands Launch] eq ""} {
         proc Launch {} {
           ActiveTool::Set [namespace current]
@@ -354,12 +274,22 @@ namespace eval Tools {
         proc Initialize {} {}
       }
 
-      proc Supports {feature} {
-        variable Manifest
-        if {[dict exists $Manifest features $feature]} {
-          return 1
-        }
-        return 0
+      # Injected into tool's namespace to simplify registration process
+      # key can be dotted -> ping.pong registers the pong command under ping
+      proc RegisterCommand {key raw_dict} {
+        set ns [namespace current]
+        if {![dict exists $raw_dict ide]} { dict set raw_dict ide [string tolower [namespace tail $ns]] }
+        Commands::RegisterCommand "TOOL.[string toupper [namespace tail $ns]].$key" $raw_dict
+      }
+
+      proc RegisterFlow {key raw_dict} {
+        Flow::RegisterFlow [namespace current] $key $raw_dict
+      }
+
+      # RegisterStage <name> {spec} declares against an existing proc;
+      # RegisterStage <name> {spec} {body} also defines it.
+      proc RegisterStage {name spec args} {
+        Tools::RegisterStage [namespace current] $name $spec {*}$args
       }
 
       proc GetManifest {} {
@@ -372,8 +302,9 @@ namespace eval Tools {
       }
 
       proc _printTool {} {
+        #TODO: Clean this up probably 
         variable Manifest
-        set injected {Has Supports GetManifest _printTool}
+        set injected {Has GetManifest _printTool}
         set tool_name [namespace tail [namespace current]]
 
         set methods {}
@@ -394,60 +325,19 @@ namespace eval Tools {
 
 
 
-
-# Namespace wrapper around the current tool, should use this instead
-# of tool specific calls in most cases:
+# Which tool's process we are in - "tclsh" at the top level, or a tool namespace
+# once an IDE child has booted (or an in-process tool has flipped itself active).
+# Identity only; stage resolution goes through the command tree
 namespace eval ActiveTool {
   variable tool "tclsh"
-  variable _fixed_procs {Set CurrentTool Refresh}
-  variable _skip_procs {}
-
 
   proc CurrentTool {} {
     variable tool
     return $tool
   }
 
-  proc Refresh {} {
-    variable tool
-    Set $tool
-  }
-
   proc Set {tool_ns} {
     variable tool
-    variable _fixed_procs
-    variable _skip_procs
-
-    foreach cmd [info commands ::ActiveTool::*] {
-      set name [namespace tail $cmd]
-      if {$name ni $_fixed_procs} {
-        rename ::ActiveTool::$name ""
-      }
-    }
-
-    if {$tool_ns eq ""} {
-      return
-    }
-
-    set tool $tool_ns
-
-    foreach tool_proc [info commands ${tool_ns}::*] {
-      set name [namespace tail $tool_proc]
-
-      if {[string index $name 0] eq "_"} continue
-      if {$name in $_skip_procs}   continue
-      if {$name in $_fixed_procs} continue
-
-      # we can generate a wrapper around the actual call to add logging or
-      # other functionality without modifying the tool's code
-      set proc_body [string map [list @_TOOL $tool_ns @_PROC_NAME $name] {
-        Msg Debug "Calling @_TOOL::@_PROC_NAME with args: $args"
-        set result [@_TOOL::@_PROC_NAME {*}$args]
-        Msg Debug "Result from @_TOOL::@_PROC_NAME $result"
-        return $result
-      }]
-
-      proc ::ActiveTool::$name {args} $proc_body
-    }
+    if {$tool_ns ne ""} { set tool $tool_ns }
   }
 }

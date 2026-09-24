@@ -6,40 +6,39 @@
 # These proceedures should be available regardless of which synthesis tool is used.
 
 namespace eval Tools::Sigasi {
-  variable Manifest {
+  Tools::RegisterTool [namespace current] {
     name "sigasi-cli"
     vendor "Sigasi"
-    aliases {sigasi}
+    ref_name {sigasi}
     description "Sigasi-cli toolchain"
-    commands {
-      export {
-        aliases {sigasi-e e}
-        description " exports a CSV file for sigasi project creation "
-        requires_proj true
-        options {
-          {new  "Create a new style Sigasi project file"}
-        }
-        script  { Tools::Sigasi::sigasi-export}
-      }
-      format {
-        aliases {sigasi-f f}
-        requires_proj true
-        description " sigasi-cli wrapper to run repo formatting settings across all files in the repo  "
-        script  { Tools::Sigasi::sigasi-format }
-      }
-      document {
-        aliases {sigasi-d doc d docs}
-        description " sigasi-cli wrapper to create basic documentation of the project "
-        requires_proj true
-        script  {Tools::Sigasi::sigasi-document}
-      }
-      lint {
-        aliases {sigasi-l l}
-        description " sigasi-cli wrapper to generate a code quality report "
-        requires_proj true
-        script  {Tools::Sigasi::sigasi-lint}
-      }
+  }
+
+  RegisterCommand export {
+    aliases {sigasi-e e}
+    description " exports a CSV file for sigasi project creation "
+    requires_proj true
+    options {
+      {new  "Create a new style Sigasi project file"}
     }
+    script  { Tools::Sigasi::sigasi-export}
+  }
+  RegisterCommand format {
+    aliases {sigasi-f f}
+    requires_proj true
+    description " sigasi-cli wrapper to run repo formatting settings across all files in the repo  "
+    script  { Tools::Sigasi::sigasi-format }
+  }
+  RegisterCommand document {
+    aliases {sigasi-d doc d docs}
+    description " sigasi-cli wrapper to create basic documentation of the project "
+    requires_proj true
+    script  {Tools::Sigasi::sigasi-document}
+  }
+  RegisterCommand lint {
+    aliases {sigasi-l l}
+    description " sigasi-cli wrapper to generate a code quality report "
+    requires_proj true
+    script  {Tools::Sigasi::sigasi-lint}
   }
 
   proc Initialize {} {
@@ -90,14 +89,14 @@ namespace eval Tools::Sigasi {
     set out_dict $default_dict
 
     Msg Info " retrieving the sigasi configuration settings "
-    if { [ ::tdict::exists [ CurrentProject::Get repo_config ] sigasi ] } {
-      set sigasi_dict [ ::tobj::native [ CurrentProject::Get repo_config sigasi ]]
+    if { [Repo::Exists config  sigasi ] } {
+      set sigasi_dict [ ::tobj::native [ Repo::Get config sigasi ]]
       Msg Debug "debug merge 1 $sigasi_dict "
       set out_dict [dict merge $default_dict $sigasi_dict]
     }
 
     set config [ CurrentProject::Get config ]
-    if { [ ::tdict::exists [ CurrentProject::Get config ] sigasi ] } {
+    if { [  CurrentProject::Exists config  sigasi ] } {
       set sigasi_dict [ ::tobj::native [ CurrentProject::Get config sigasi ]]
       Msg Debug "debug merge 2 $sigasi_dict "
       set out_dict [dict merge $out_dict $sigasi_dict]

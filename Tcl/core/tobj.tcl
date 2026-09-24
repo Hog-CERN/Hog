@@ -146,6 +146,15 @@ namespace eval tlist {
     return [tobj create List $nodes]
   }
 
+  # create, but every element is forced to String instead of being typed by tinf. 
+  # i.e. tinf might make "9" type Number
+  # Use this for raw text that must survive a round-trip
+  proc createstr {args} {
+    ::set nodes {}
+    ::foreach node $args { ::lappend nodes [tobj create String $node] }
+    return [tobj create List $nodes]
+  }
+
   proc append {listVar args} {
     upvar 1 $listVar lst
     if {![tobj isobj $lst]}         { error "tlist append: not a tobj"      "" {INVALID_TOBJ}      }
@@ -156,8 +165,7 @@ namespace eval tlist {
     set lst [tobj create List $current]
   }
 
-  proc get {listVar index} {
-    upvar 1 $listVar lst
+  proc get {lst index} {
     if {![tobj isobj $lst]}         { error "tlist get: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist get: not a List node" "" {INVALID_TOBJ_LIST} }
     return [lindex [tobj value $lst] $index]
@@ -172,8 +180,7 @@ namespace eval tlist {
     return [tobj value $item]
   }
 
-  proc length {listVar} {
-    upvar 1 $listVar lst
+  proc length {lst} {
     if {![tobj isobj $lst]}         { error "tlist length: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist length: not a List node" "" {INVALID_TOBJ_LIST} }
     return [llength [tobj value $lst]]
@@ -202,7 +209,16 @@ namespace eval tlist {
     if {[tobj type $lst] ne "List"} { error "tlist foreach: not a List node" "" {INVALID_TOBJ_LIST} }
     ::foreach item [tobj value $lst] {
       uplevel 1 [list set $itemVar $item]
-      uplevel 1 $body
+      ::set _tlf_code [catch {uplevel 1 $body} _tlf_res _tlf_opts]
+      switch -- $_tlf_code {
+        0 {}
+        3 { break }
+        4 { continue }
+        default {
+          dict set _tlf_opts -level 2
+          return -options $_tlf_opts $_tlf_res
+        }
+      }
     }
   }
 
@@ -212,7 +228,16 @@ namespace eval tlist {
     ::foreach item [tobj value $lst] {
       set _t [tobj type $item]
       uplevel 1 [list set $itemVar [expr {$_t eq "Dict" || $_t eq "List" ? $item : [tobj value $item]}]]
-      uplevel 1 $body
+      ::set _tlv_code [catch {uplevel 1 $body} _tlv_res _tlv_opts]
+      switch -- $_tlv_code {
+        0 {}
+        3 { break }
+        4 { continue }
+        default {
+          dict set _tlv_opts -level 2
+          return -options $_tlv_opts $_tlv_res
+        }
+      }
     }
   }
 
@@ -229,18 +254,17 @@ namespace eval tlist {
   proc index {lst value} {
     if {![tobj isobj $lst]}         { error "tlist index: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist index: not a List node" "" {INVALID_TOBJ_LIST} }
-    set needle [expr {[tobj isobj $value] ? $value : [tinf $value]}]
+    set needle [expr {[tobj isobj $value] ? [tobj value $value] : $value}]
     set i 0
     ::foreach item [tobj value $lst] {
       set t [tobj type $item]
-      if {$t eq "Dict" || $t eq "List"} { continue }
-      if {$t eq $needle} { return $i }
+      if {$t ne "Dict" && $t ne "List" && [tobj value $item] eq $needle} { return $i }
       incr i
     }
     return -1
   }
 
-  namespace export create append get getval length remove pop foreach foreachval elemExists index
+  namespace export create createstr append get getval length remove pop foreach foreachval elemExists index
   namespace ensemble create
 }
 
@@ -310,6 +334,28 @@ namespace eval tdict {
     return [tobj value $obj]
   }
 
+  # tdict getor dict key ?key ...? default
+  # returns default instead of erroring on a missing key.
+  proc getor {d args} {
+    if {[llength $args] < 2} {
+      error "tdict getor: usage: tdict getor dict key ?key ...? default" "" {INVALID_ARGS}
+    }
+    ::set keyPath [lrange $args 0 end-1]
+    if {![exists $d {*}$keyPath]} { return [lindex $args end] }
+    return [getval $d {*}$keyPath]
+  }
+
+  # tdict getobjor dict key ?key ...? defaultObj
+  # returns defaultObj instead of erroring on a missing key.
+  proc getobjor {d args} {
+    if {[llength $args] < 2} {
+      error "tdict getobjor: usage: tdict getobjor dict key ?key ...? defaultObj" "" {INVALID_ARGS}
+    }
+    ::set keyPath [lrange $args 0 end-1]
+    if {![exists $d {*}$keyPath]} { return [lindex $args end] }
+    return [get $d {*}$keyPath]
+  }
+
   proc _getPath {d keyPath} {
     ::set key     [lindex $keyPath 0]
     ::set rest    [lrange $keyPath 1 end]
@@ -340,8 +386,7 @@ namespace eval tdict {
     return [dict keys [tobj value $d]]
   }
 
-  proc size {dictVar} {
-    upvar 1 $dictVar d
+  proc size {d} {
     if {![tobj isobj $d]}         { error "tdict size: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict size: not a Dict node" "" {INVALID_TOBJ_DICT} }
     return [dict size [tobj value $d]]
@@ -354,8 +399,44 @@ namespace eval tdict {
     dict for {_k _v} [tobj value $d] {
       uplevel 1 [list set $keyVar $_k]
       uplevel 1 [list set $valVar $_v]
-      uplevel 1 $body
+      ::set _tdf_code [catch {uplevel 1 $body} _tdf_res _tdf_opts]
+      switch -- $_tdf_code {
+        0 {}
+        3 { break }
+        4 { continue }
+        default {
+          # -level must be baked into the caught options dict, not passed as a
+          # separate flag — -options carries its own -level (captured by catch)
+          # that silently wins over a same-command -level override. Level 2
+          # unwinds exactly the proc that contains this tdict-for call, no more.
+          dict set _tdf_opts -level 2
+          return -options $_tdf_opts $_tdf_res
+        }
+      }
     }
+  }
+
+  # tdict filter dict key|value pattern
+  # Returns a new tdict containing only entries where the key or scalar value
+  # matches the glob pattern.
+  proc filter {d mode pattern} {
+    if {![tobj isobj $d]}         { error "tdict filter: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $d] ne "Dict"} { error "tdict filter: not a Dict node" "" {INVALID_TOBJ_DICT} }
+    ::set result {}
+    dict for {k v} [tobj value $d] {
+      switch -- $mode {
+        key   {
+          if {[string match $pattern $k]} { dict set result $k $v }
+        }
+        value {
+          ::set vraw [expr {[tobj isobj $v] && [tobj type $v] ni {Dict List}
+                          ? [tobj value $v] : $v}]
+          if {[string match $pattern $vraw]} { dict set result $k $v }
+        }
+        default { error "tdict filter: unknown mode '$mode'" "" {INVALID_ARGS} }
+      }
+    }
+    return [tobj create Dict $result]
   }
 
   # tdict lappend dictVar key ?key ...? tobjNode
@@ -414,6 +495,6 @@ namespace eval tdict {
     ::set d [tobj create Dict $current]
   }
 
-  namespace export create set lappend get getval exists keys size for remove
+  namespace export create set lappend get getval getor getobjor exists keys size for filter remove
   namespace ensemble create
 }

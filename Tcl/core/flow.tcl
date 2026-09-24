@@ -1,306 +1,116 @@
 
 namespace eval Flow {
-  # _registry shape:
-  #   aliases -> tdict: <alias> -> tdict { <tool_ns> -> flow_name }
-  #   tools -> tdict:
-  #     <tool_ns> -> tdict:
-  #       flows   -> tdict:
-  #         <flow> -> tdict:
-  #           aliases     -> tlist
-  #           stages      -> tlist
-  #           description -> tstring
-  #           options     -> tlist
-  
-  variable _registry
-  if {![info exists _registry]} {
-    set _registry [tdict create aliases [tdict create] tools [tdict create]]
-  }
-
-  variable _fields {
-    { name        ""     optional}
-    { stages      ""     required}
-
-    { aliases     ""     optional}
-    { description ""     optional}
-    { options     ""     optional}
-  }
 
   # A top-level command may NOT claim any of these
   # names/aliases, even if no flow currently uses them — this protects the core
-  # project workflow from being shadowed by a stray command. Editable.
+  # project workflow from being shadowed by a stray command.
   variable ReservedFlowNames {
     CREATE CREATEWORKFLOW WORKFLOW
     SYNTHESIS SYNTH IMPLEMENTATION IMPL IMPLEMENT
     SIMULATION SIMULATE BITSTREAM
   }
 
-  # Core command words a flow may NOT claim as its name/alias (they belong to
-  # the command dispatcher and would be unreachable if shadowed).
-  variable ReservedCommandWords { TOOL HELP FLOW }
-
-  proc IsReservedFlowName {name} {
-    variable ReservedFlowNames
-    return [expr {[string toupper $name] in $ReservedFlowNames}]
+  foreach _reserved_name $Flow::ReservedFlowNames {
+    Commands::AddNameGuard $_reserved_name \
+      "'$_reserved_name' is a reserved project-flow verb; a top-level command\
+        would shadow the same-named flow on every tool. Rename it, or reach\
+        the flow via 'tool <tool> flow $_reserved_name <project>'."
   }
-
-  proc IsReservedCommandWord {name} {
-    variable ReservedCommandWords
-    return [expr {[string toupper $name] in $ReservedCommandWords}]
-  }
+  unset _reserved_name
 
 
-  proc _valid_alias {tool alias} {
-    variable _registry
-    if {$alias eq ""} { return 0 }
-    if {[tdict exists $_registry aliases $alias $tool]} { return 0 }
-    return 1
-  }
 
-  proc _validate_flow {key raw_dict} {
-    variable _fields
+  # Registers a flow for 'tool' (name/alias or namespace) as the command node <TOOL>.FLOW.<NAME>.
+  proc RegisterFlow {tool key raw_dict args} {
+    set tool_ns [expr {[namespace exists $tool] ? $tool : [Tools::ResolveAlias $tool]}]
+    if {$tool_ns eq ""} {
+      Msg Warning "Skipping flow '$key': unknown tool '$tool'"
+      return
+    }
+    set tool_key   [string toupper [namespace tail $tool_ns]]
+    set tool_short [string tolower [namespace tail $tool_ns]]
 
-    set norm [dict create]
+    set norm {}
     dict for {k v} $raw_dict { dict set norm [string tolower $k] $v }
     set raw_dict $norm
-    set result [dict create]
 
-    foreach field $_fields {
-      lassign $field fname fdefault frequired
-      if {$fname eq "name"} {
-        if {[dict exists $raw_dict name] && [dict get $raw_dict name] ne ""} {
-          dict set result name [dict get $raw_dict name]
-        } else {
-          dict set result name $key
-        }
-        continue
-      }
-      if {[dict exists $raw_dict $fname]} {
-        dict set result $fname [dict get $raw_dict $fname]
-      } elseif {$frequired eq "required"} {
-        error "Flow '$name': missing required field '$fname'"
-      } else {
-        dict set result $fname $fdefault
-      }
+    dict set raw_dict requires_proj true
+    dict set raw_dict ide           $tool_short
+
+    set flow_group "TOOL.$tool_key.FLOW"
+    if {[Commands::GetCommand $flow_group] eq {}} {
+      Commands::RegisterCommand $flow_group [dict create description \
+        "Flows provided by [namespace tail $tool_ns].\
+         Usage: $tool_short flow <flow> <project>"]
     }
-    return $result
+    Commands::RegisterCommand "TOOL.$tool_key.FLOW.[string toupper $key]" $raw_dict {*}$args
   }
 
   proc RegisterCustomFlows {flow_dir} {
     if {![file isdirectory $flow_dir]} { return }
-
     foreach f [lsort [glob -nocomplain -directory $flow_dir *.tcl]] {
-      unset -nocomplain ::custom_flows
-      if {[catch {namespace eval :: [list source $f]} err]} {
-        Msg Warning "failed to source [file tail $f]: $err"
-        continue
-      }
-      if {![info exists ::custom_flows]} {
-        Msg Warning "custom_flows variable not found in [file tail $f], skipping"
-        continue
-      }
-      if {[catch {dict size $::custom_flows}]} {
-        Msg Warning "custom_flows is not a dictionary in [file tail $f]"
-        continue
-      }
-      dict for {custom_tool flows} $::custom_flows {
-        if {![regexp -nocase "::Tools::$custom_tool" [namespace children ::Tools] tool_ns]} {
-          Msg Warning "Could not find tool '$custom_tool' for custom flow in [file tail $f], skipping"
-          continue
-        }
-        RegisterFlowDict $tool_ns $flows 1
-      }
+      Hog::SourceFile $f 1
     }
-  }
-
-  proc RegisterFlow {tool_ns key raw_dict {is_custom 0}} {
-    variable _registry
-
-    if {[catch {_validate_flow $key $raw_dict} validated]} {
-      Msg Warning "Skipping flow '$key' in tool '$tool_ns': $validated"
-      return
-    }
-
-    if {![tdict exists $_registry tools $tool_ns]} {
-      tdict set _registry tools $tool_ns [tdict create flows [tdict create]]
-    }
-
-    set name [string toupper [dict get $validated name]]
-
-    if {[IsReservedCommandWord $name]} {
-      Msg Warning "Flow '$name' in tool '$tool_ns' uses reserved command word '$name', skipping"
-      return
-    }
-
-    if {![_valid_alias $tool_ns $name]} {
-      Msg Warning "Flow '$name' in tool '$tool_ns' is not valid or already exists as an alias, skipping"
-      return
-    }
-
-    set aliases [list]
-    foreach alias [dict get $validated aliases] {
-      set alias [string toupper $alias]
-      if {[IsReservedCommandWord $alias]} {
-        Msg Warning "Alias '$alias' for flow '$name' in tool '$tool_ns' is a reserved command word, skipping"
-      } elseif {[_valid_alias $tool_ns $alias]} {
-        lappend aliases $alias
-      } else {
-        Msg Warning "Alias '$alias' for flow '$name' in tool '$tool_ns' is not valid or already exists, skipping"
-      }
-    }
-
-    tdict set _registry tools $tool_ns flows $name [tdict create \
-      name        [tstr $name] \
-      tool        [tstr $tool_ns] \
-      aliases     [tlist create {*}$aliases] \
-      stages      [tlist create {*}[dict get $validated stages]] \
-      description [tstr [dict get $validated description]] \
-      options     [tlist create {*}[dict get $validated options]] \
-      custom      [tbool $is_custom] \
-    ]
-
-    foreach alias "$name $aliases" {
-      if {![tdict exists $_registry aliases $alias]} {
-        tdict set _registry aliases $alias [tdict create]
-      }
-      tdict set _registry aliases $alias $tool_ns [tstr $name]
-    }
-  }
-
-  proc RegisterFlowDict {tool_ns flows_dict {is_custom 0}} {
-    dict for {name raw} $flows_dict {
-      RegisterFlow $tool_ns $name $raw $is_custom
-    }
-  }
-
-
-
-  proc _flatten_options {tool flow} {
-    variable _registry
-
-    if {![tdict exists $_registry aliases $flow $tool]} { return {} }
-    set resolved [tobj value [tdict get $_registry aliases $flow $tool]]
-    if {![tdict exists $_registry tools $tool flows $resolved]} { return {} }
-
-    set result {}
-    set seen   {}
-
-    tlist foreach opt_tobj [tdict get $_registry tools $tool flows $resolved options] {
-      set spec     [tobj value $opt_tobj]
-      set opt_name [lindex $spec 0]
-      if {$opt_name ni $seen} {
-        lappend result $spec
-        lappend seen   $opt_name
-      }
-    }
-
-    tlist foreach stage [tdict get $_registry tools $tool flows $resolved stages] {
-      set sname [tobj value $stage]
-      if {[string match "@*" $sname]} {
-        foreach spec [_flatten_options $tool [string range $sname 1 end]] {
-          set opt_name [lindex $spec 0]
-          if {$opt_name ni $seen} {
-            lappend result $spec
-            lappend seen   $opt_name
-          }
-        }
-      }
-    }
-    return $result
-  }
-
-  proc _flatten_stages {tool flow} {
-    variable _registry
-
-    if {![tdict exists $_registry aliases $flow $tool]} {
-      Msg Warning "Flow or alias '$flow' not found for tool '$tool'"
-      return {}
-    }
-    set resolved [tobj value [tdict get $_registry aliases $flow $tool]]
-
-    if {![tdict exists $_registry tools $tool flows $resolved]} {
-      Msg Warning "Flow '$resolved' not found for tool '$tool'"
-      return {}
-    }
-
-    set result {}
-    tlist foreach stage [tdict get $_registry tools $tool flows $resolved stages] {
-      set name [tobj value $stage]
-      if {[string match "@*" $name]} {
-        lappend result {*}[_flatten_stages $tool [string range $name 1 end]]
-      } else {
-        lappend result $name
-      }
-    }
-    return $result
-  }
-
-
-  proc GetFlows {alias} {
-    variable _registry
-    if {![tdict exists $_registry aliases $alias]} { return [tlist create] }
-    set result [tlist create]
-    tdict for {tool_ns _unused} [tdict get $_registry aliases $alias] {
-      set flow [GetFlow $tool_ns $alias]
-      tdict set flow tool [tstr $tool_ns]
-      tlist append result $flow
-    }
-    return $result
-  }
-
-  proc AliasExists {alias} {
-    variable _registry
-    return [tdict exists $_registry aliases $alias]
-  }
-
-  proc AliasExistsForTool {alias tool} {
-    variable _registry
-    return [tdict exists $_registry aliases $alias $tool]
-  }
-
-  proc GetFlowStages {tool flow} {
-    variable _registry
-    if {![tdict exists $_registry tools $tool]} {
-      Msg Warning "Tool '$tool' not found in registry"
-      return {}
-    }
-    return [_flatten_stages $tool $flow]
-  }
-
-  proc GetFlowOptions {tool flow} {
-    variable _registry
-    if {![tdict exists $_registry tools $tool]} {
-      Msg Warning "Tool '$tool' not found in registry"
-      return {}
-    }
-    return [_flatten_options $tool $flow]
-  }
-
-  proc GetToolFlows {tool_ns} {
-    variable _registry
-    if {![tdict exists $_registry tools $tool_ns flows]} { return [tdict create] }
-    return [tdict get $_registry tools $tool_ns flows]
-  }
-
-  proc GetFlow {tool_ns alias} {
-    variable _registry
-    set alias [string toupper $alias]
-    if {![tdict exists $_registry aliases $alias $tool_ns]} { return [tdict create] }
-    set flow_name [tobj value [tdict get $_registry aliases $alias $tool_ns]]
-    if {![tdict exists $_registry tools $tool_ns flows $flow_name]} { return [tdict create] }
-    return [tdict get $_registry tools $tool_ns flows $flow_name]
-  }
-  
-
-
-  proc Run {flow} {
-    set tool [ActiveTool::CurrentTool]
-    set _flow_name [tdict getval [GetFlow $tool $flow] name]
-
-    FlowControl::Run [GetFlowStages $tool $flow] $_flow_name
   }
 
 }
 
+
+# File-backed store for whatever FlowControl::Produce records while a stage
+# runs. One file per name, holding a bare Tcl dict
+# stored in Project/<Project>/.hog/tokens/
+# {
+#   producer <>
+#   describe <>
+#   mtime <>
+#   path <>
+#   file_mtime <>
+# }
+#
+# path and file_mtime only exist if the token is backed by a file generated elsewhere
+namespace eval Artifact {
+
+  # "" when no project is current - callers must treat that as "no store".
+  proc _dir {} {
+    if {![CurrentProject::Exists project_name]} { return "" }
+    return [file join [CurrentProject::Get build_dir] .hog tokens]
+  }
+
+  proc Write {name record} {
+    set dir [_dir]
+    if {$dir eq ""} {
+      Msg Warning "Artifact::Write $name: no project is current, nothing persisted"
+      return
+    }
+    file mkdir $dir
+    set fh [open [file join $dir "$name.tcl"] w]
+    puts $fh $record
+    close $fh
+  }
+
+  proc Read {name} {
+    set dir [_dir]
+    if {$dir eq ""} { return {} }
+    set path [file join $dir "$name.tcl"]
+    if {![file exists $path]} { return {} }
+    set fh [open $path r]
+    set record [read $fh]
+    close $fh
+    return $record
+  }
+
+  proc Exists {name} {
+    set dir [_dir]
+    if {$dir eq ""} { return 0 }
+    return [file exists [file join $dir "$name.tcl"]]
+  }
+
+  proc Remove {name} {
+    set dir [_dir]
+    if {$dir eq ""} { return }
+    file delete -force [file join $dir "$name.tcl"]
+  }
+}
 
 namespace eval FlowControl {
   variable _state
@@ -337,56 +147,148 @@ namespace eval FlowControl {
   # Stage Dependency Management
   ################################################################################ 
 
-  proc Produce {args} {
+  # True only while a real stage is running (inside Run's loop):
+  # gates artifacts from being stored without a current project or from within a stage
+  proc _stage_context {} {
     variable _state
-    set tok [_tokens]
-    foreach token $args {
-      if {$token ni $tok} { lappend tok $token }
-    }
-    tdict set _state tokens [tlist create {*}$tok]
+    return [expr {[tdict getval $_state stage] ne "" && [CurrentProject::Exists project_name]}]
   }
 
-  proc Require {args} {
+  # Creates a persitant artifact
+  # 'mtime' is call-time ([clock seconds])
+  #   - used for cross token comparisions
+  # 'file_mtime' is the payload's own filesystem mtime at write time, 
+  #   - used only to detect an out of hog modification
+  proc _persist {name path} {
     variable _state
-    set tok [_tokens]
-    set stg [tdict getval $_state stage]
-    foreach token $args {
-      if {$token ni $tok} {
-        tdict set _state status abort
-        tdict set _state reason "Required token '$token' not found while executing proc [lindex [info level -1] 0]. "
+    set producer [StageProc [tdict getval $_state stage]]
+    if {$producer eq ""} { set producer [tdict getval $_state stage] }
+    set record [dict create producer $producer describe [Repo::Get Tag] mtime [clock seconds]]
+    if {$path ne ""} {
+      if {![file exists $path]} {
+        return -code error "Produce $name: no file at '$path' - the stage claimed to have\
+          written it, but it isn't there."
+      }
+      dict set record path       $path
+      dict set record file_mtime [file mtime $path]
+    }
+    Artifact::Write $name $record
+  }
 
-        set _flow_run_level -1
-        for {set i 1} {$i < [info level]} {incr i} {
-          if {[lindex [info level $i] 0] eq "FlowControl::Run"} {
-            set _flow_run_level $i
-            break
-          }
+  # Walks the whole ancestor chain (each producer's declared 'requires'); Warns only;
+  proc _check_freshness {name {_seen {}}} {
+    if {$name in $_seen} { return }
+    lappend _seen $name
+    set record [Artifact::Read $name]
+    if {[dict size $record] == 0} { return }
+    set my_mtime [dict get $record mtime]
+    foreach producer_canon [Commands::ProducersOf $name] {
+      set pnode [Commands::GetCommand $producer_canon]
+      if {$pnode eq {}} continue
+      set upstream [tdict getobjor $pnode requires [tlist create]]
+      tlist foreachval up_name $upstream {
+        set up_record [Artifact::Read $up_name]
+        # A required artifact that was never produced is normal (conditional
+        # artifacts), not something to warn about.
+        if {[dict size $up_record] == 0} continue
+        if {[dict get $up_record mtime] > $my_mtime} {
+          Msg Warning "'$name' (produced by $producer_canon) is older than '$up_name',\
+            which it requires - '$up_name' was produced more recently. Consider rebuilding\
+            '$name'."
         }
-
-        if {$_flow_run_level < 0} {
-          Msg Warning "Require called outside of FlowControl::Run. Don't know what to do... returning..."
-          return
-        }
-        return -level [expr {[info level] - $_flow_run_level}]
+        _check_freshness $up_name $_seen
       }
     }
   }
 
-  proc RequireOr {token script} {
+  # Produce name ?path? - given a path, always persists (the artifact is the
+  # payload). Given none, it's a plain in-memory token that never persists on
+  # its own - a per-process fact (e.g. VIVADO_INITIALIZED) must not leak into
+  # a later process via a stale record.
+  proc Produce {name {path {}}} {
     variable _state
     set tok [_tokens]
-    set stg [tdict getval $_state stage]
-    if {$token ni $tok} {
-      uplevel 1 "${script}\nFlowControl::Require $token"
-    } 
+    if {$name ni $tok} {
+      lappend tok $name
+      tdict set _state tokens [tlist create {*}$tok]
+    }
+    if {$path ne "" && [_stage_context]} { _persist $name $path }
   }
 
+  # Opt-in for a bare token that's a durable fact about the filesystem, not
+  # the live interpreter, and should be checkable from a later process.
+  proc ProducePersistent {name} {
+    Produce $name
+    if {[_stage_context]} { _persist $name {} }
+  }
+
+  # The membership check Require/RequireOr delegate to: in-memory list first,
+  # then - if stage-attributed - the on-disk store. A stale record (file
+  # gone, or its mtime changed since recorded) is dropped and reported absent.
   proc Has {args} {
+    variable _state
     set tok [_tokens]
+    set can_check_disk [_stage_context]
     foreach token $args {
-      if {$token ni $tok} { return 0 }
+      if {$token in $tok} { continue }
+      if {!$can_check_disk || ![Artifact::Exists $token]} { return 0 }
+      set record [Artifact::Read $token]
+      if {[dict exists $record path]} {
+        set path [dict get $record path]
+        if {![file exists $path]} {
+          Msg Warning "Artifact '$token' was recorded (by [dict get $record producer]) but its\
+            file is missing: $path - dropping the stale record."
+          Artifact::Remove $token
+          return 0
+        }
+        if {[dict exists $record file_mtime] && [file mtime $path] != [dict get $record file_mtime]} {
+          Msg Warning "Artifact '$token' at $path has changed on disk since it was recorded (by\
+            [dict get $record producer]) - dropping the stale record."
+          Artifact::Remove $token
+          return 0
+        }
+      }
+      _check_freshness $token
     }
     return 1
+  }
+
+  proc Require {args} {
+    variable _state
+    foreach token $args {
+      if {[Has $token]} continue
+      set producers [Commands::ProducersOf $token]
+      set by [expr {[llength $producers] > 0 ? " (produced by [join $producers {, }])" : ""}]
+      tdict set _state status abort
+      tdict set _state reason "Required token '$token' not found$by while executing proc [lindex [info level -1] 0]. "
+
+      set _flow_run_level -1
+      for {set i 1} {$i < [info level]} {incr i} {
+        if {[lindex [info level $i] 0] eq "FlowControl::Run"} {
+          set _flow_run_level $i
+          break
+        }
+      }
+
+      if {$_flow_run_level < 0} {
+        Msg Warning "Require called outside of FlowControl::Run. Don't know what to do... returning..."
+        return
+      }
+      return -level [expr {[info level] - $_flow_run_level}]
+    }
+  }
+
+  proc RequireOr {token script} {
+    if {![Has $token]} {
+      uplevel 1 "${script}\nFlowControl::Require $token"
+    }
+  }
+
+  # On-disk path of a produced artifact - "" if none was recorded.
+  proc ArtifactPath {name} {
+    set record [Artifact::Read $name]
+    if {![dict exists $record path]} { return "" }
+    return [dict get $record path]
   }
 
   proc ClearTokens {} {
@@ -454,6 +356,19 @@ namespace eval FlowControl {
     }
   }
 
+  # Stage name -> fully-qualified proc. "::Foo::Bar" is used verbatim (cross-
+  # tool stages); a bare name resolves against the <TOOL>.STAGE node if
+  # registered (aliases, artifact contract), else a plain proc in the active
+  # tool's namespace. Returns "" when there is no active tool to resolve against.
+  proc StageProc {stage} {
+    if {[string match "::*" $stage]} { return $stage }
+    set tool_ns [ActiveTool::CurrentTool]
+    if {$tool_ns eq "" || $tool_ns eq "tclsh"} { return "" }
+    set node [Commands::GetCommand "TOOL.[string toupper [namespace tail $tool_ns]].STAGE.$stage"]
+    if {$node ne {}} { return [tdict getval $node script] }
+    return ${tool_ns}::${stage}
+  }
+
   proc ClearRemaining {} {
     variable _i
     _set_stages [lrange [_stages] 0 $_i]
@@ -468,6 +383,15 @@ namespace eval FlowControl {
   proc Run {stages flow} {
     variable _state
     variable _i
+
+    # Catches a flow with no stages, or every @ref unresolved (FlattenStages
+    # already warned) - otherwise the loop below just silently no-ops.
+    if {[llength $stages] == 0} {
+      Msg Error "Flow $flow has no stages to run - it either declares none, or\
+        every stage it @references failed to resolve."
+      return -code error "flow '$flow' has no stages"
+    }
+
     tdict set _state stages [tlist create {*}$stages]
     tdict set _state status [tstr continue]
     tdict set _state reason [tstr ""]
@@ -480,12 +404,19 @@ namespace eval FlowControl {
       tdict set _state stage [tstr $stage]
       set prev [_stages]
 
-      if {[string match "::*" $stage]} {
-        $stage
+      # Resolved per iteration - a stage may insert more stages, or a tool
+      # may define its proc lazily.
+      set _proc [StageProc $stage]
+      if {$_proc eq "" || [info commands $_proc] eq ""} {
+        tdict set _state status [tstr abort]
+        tdict set _state reason [tstr "stage '$stage' has no implementation\
+          ([expr {$_proc eq "" ? "no active tool to resolve it against" : "no proc $_proc"}])"]
       } else {
-        if {[ActiveTool::Has @PRE_$stage]}  { ActiveTool::@PRE_$stage  }
-        ActiveTool::$stage
-        if {[ActiveTool::Has @POST_$stage]} { ActiveTool::@POST_$stage }
+        set _ns [namespace qualifiers $_proc]
+        if {[info commands ${_ns}::@PRE_$stage] ne ""}  { ${_ns}::@PRE_$stage }
+        Msg Debug "Flow $flow: stage '$stage' -> $_proc"
+        $_proc
+        if {[info commands ${_ns}::@POST_$stage] ne ""} { ${_ns}::@POST_$stage }
       }
 
       if {[_stages] ne $prev} {
@@ -496,10 +427,12 @@ namespace eval FlowControl {
       set reason [tdict getval $_state reason]
       switch $status {
         abort {
+          tdict set _state stage [tstr ""]
           Msg Error "Flow $flow aborted at '$stage': $reason"
           return -code error $reason
         }
         exit {
+          tdict set _state stage [tstr ""]
           if {$reason ne ""} { Msg Info "Flow $flow exiting after '$stage': $reason" }
           return
         }
@@ -507,6 +440,8 @@ namespace eval FlowControl {
 
       incr _i
     }
+    # Cleared here too, so a call between flows doesn't inherit this stage.
+    tdict set _state stage [tstr ""]
   }
 
 }

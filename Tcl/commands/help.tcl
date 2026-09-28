@@ -333,7 +333,7 @@ namespace eval Help {
     if {[dict get $_m version]     ne ""} { puts "  Version:     [dict get $_m version]" }
     if {[dict get $_m custom]}             { puts "  Origin:      custom (user-defined)" }
     if {[dict get $_m _source_path] ne ""} { puts "  Source:      [dict get $_m _source_path]" }
-    puts "  Version Info:" 
+    puts "  Version Info:"
     set _git [dict get $_m _git]
     if {[dict size $_git] > 0} {
       dict for {_gk _gv} $_git {

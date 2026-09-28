@@ -143,9 +143,9 @@ namespace eval FlowControl {
   }
 
 
-  ################################################################################ 
+  ################################################################################
   # Stage Dependency Management
-  ################################################################################ 
+  ################################################################################
 
   # True only while a real stage is running (inside Run's loop):
   # gates artifacts from being stored without a current project or from within a stage
@@ -157,7 +157,7 @@ namespace eval FlowControl {
   # Creates a persitant artifact
   # 'mtime' is call-time ([clock seconds])
   #   - used for cross token comparisions
-  # 'file_mtime' is the payload's own filesystem mtime at write time, 
+  # 'file_mtime' is the payload's own filesystem mtime at write time,
   #   - used only to detect an out of hog modification
   proc _persist {name path} {
     variable _state
@@ -309,9 +309,9 @@ namespace eval FlowControl {
     tdict set _state tokens [tlist create]
   }
 
-  ################################################################################ 
+  ################################################################################
   # Flow Control Management
-  ################################################################################ 
+  ################################################################################
 
   proc AppendStages {new} {
     set stages [_stages]
@@ -404,7 +404,7 @@ namespace eval FlowControl {
       Msg Warning "Require called outside of FlowControl::Run. Don't know what to do... returning..."
       return
     }
-    
+
     return -level [expr {[info level] - $_flow_run_level}]
   }
 

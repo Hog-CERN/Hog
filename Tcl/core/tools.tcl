@@ -3,8 +3,8 @@ namespace eval Tools {
 
   # Register bare tool command
   Commands::RegisterCommand TOOL {
-    description  "Every registered tool. Usage: <tool>" 
-    aliases tools 
+    description  "Every registered tool. Usage: <tool>"
+    aliases tools
   }
 
   # Manifest fields - identity/metadata only.
@@ -164,8 +164,8 @@ namespace eval Tools {
     return $git_info
   }
 
-  # Registers the tool namespace calling this 
-  # creates a command group for the tool, 
+  # Registers the tool namespace calling this
+  # creates a command group for the tool,
   # injects RegisterCommand/RegisterFlow/RegisterStage
   proc RegisterTool {ns manifest_dict} {
     set tool_name [namespace tail $ns]
@@ -198,7 +198,7 @@ namespace eval Tools {
   #
   #   RegisterStage Implement {produces {...} requires {...}}
   #   RegisterStage Implement {produces {...} requires {...}} { <body> }
-  # 
+  #
   proc RegisterStage {tool_ns name spec args} {
     if {[llength $args] > 1} {
       Msg Warning "RegisterStage '$name': expected 'name spec ?body?'"
@@ -302,7 +302,7 @@ namespace eval Tools {
       }
 
       proc _printTool {} {
-        #TODO: Clean this up probably 
+        #TODO: Clean this up probably
         variable Manifest
         set injected {Has GetManifest _printTool}
         set tool_name [namespace tail [namespace current]]

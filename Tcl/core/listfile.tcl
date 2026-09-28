@@ -110,7 +110,7 @@ namespace eval ListFile {
     #   decoder       Dict with optional keys:
     #     pre         Script. Implicit locals: hog_file (HogFileObj), raw_tokens, file_lib, list_ext.
     #                 Set `_done 1` to skip built-in decode.
-    #     post        Script. Implicit locals: hog_file (HogFileObj), raw_tokens. 
+    #     post        Script. Implicit locals: hog_file (HogFileObj), raw_tokens.
     #                 Called after library + prop parsing.
     #   encoder       Dict with optional keys:
     #     pre         Script. Implicit locals: hog_file (HogFileObj), tokens (list).
@@ -185,7 +185,7 @@ namespace eval ListFile {
     }
 
     # Parse raw property tokens into a tdict.
-    # Bare words become key="1"; 
+    # Bare words become key="1";
     # key=value pairs become key="value";
     # Values containing commas become a tlist of tstr
     proc ParseTokens {raw_tokens} {
@@ -319,7 +319,7 @@ namespace eval ListFile {
           set std "2008"
           foreach year {93 1987 1993 2008 2019} {
             if {[tdict exists $props $year]} {
-              set std $year 
+              set std $year
               set props [tdict remove $props $year]
               break
             }
@@ -354,7 +354,7 @@ namespace eval ListFile {
           if {[llength $raw_tokens] > 0} {
             tdict set props generated_vhd [tstr [lindex $raw_tokens 0]]
             set bare [lindex $raw_tokens 0]
-            if {[tdict exists $props $bare]} { 
+            if {[tdict exists $props $bare]} {
               set props [tdict remove $props $bare]
               }
           }

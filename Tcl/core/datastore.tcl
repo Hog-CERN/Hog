@@ -55,7 +55,7 @@ namespace eval DataStore {
         variable _ctx
         tdict set _ctx {*}[lrange $args 0 end-1] [lindex $args end]
       }
-      
+
       proc Lappend {args} {
         if {[llength $args] < 2} { error "@DS@::Lappend: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
@@ -225,7 +225,7 @@ namespace eval DataStore {
       if {![namespace exists ::${name}]} { create $name }
       ${name}::Load [tdict get $tDictRoot $name]
     }
-    
+
 
   }
 

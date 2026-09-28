@@ -1,5 +1,5 @@
 namespace eval Commands {
-  
+
   # alias_index: qualified alias -> canonical path (plain dict, string -> string)
   #   Top-level canonical:  "VIVADO"        -> "VIVADO"
   #   Top-level alias:      "VI"            -> "VIVADO"
@@ -27,7 +27,7 @@ namespace eval Commands {
     return $_current_path
   }
 
-  # Positional arguments of the running command as a plain Tcl list: 
+  # Positional arguments of the running command as a plain Tcl list:
   # every non-flag token left over after the command path resolved (see
   # ParseArgv). Index 0 is the project by convention, also mirrored as
   # Launcher project/project_name.
@@ -50,7 +50,7 @@ namespace eval Commands {
   # CommandNode
   # Represents anything that can be run from cmdline, such as tool, flow, stage, command
   # Distinguished mostly by looking at the nodes key:
-  # TOOL.<> is a tool; TOOL.<>.FLOW.<> is a flow; TOOL.<>.STAGE.<> is a stage, 
+  # TOOL.<> is a tool; TOOL.<>.FLOW.<> is a flow; TOOL.<>.STAGE.<> is a stage,
   # everything else a command
   namespace eval Node {
 
@@ -247,10 +247,10 @@ namespace eval Commands {
   }
 
   # Resolves any alias - bare ("VIVADO") or dotted ("VIVADO.FLOW.CREATE") - to
-  # its real canon. 
+  # its real canon.
   #
   # Walks the dotted commande tree, resolving aliases at each level
-  # 'VIVADO.FLOW.C' 
+  # 'VIVADO.FLOW.C'
   # 'VIVADO' -> TOOL.VIVADO
   # 'TOOL.VIVADO.FLOW' -> TOOL.VIVADO.FLOW
   # 'TOOL.VIVADO.FLOW.C' -> TOOL.VIVADO.FLOW.CREATE
@@ -400,7 +400,7 @@ namespace eval Commands {
     _register_at $node $parent $is_custom $source
   }
 
-  # Used to manually register aliases in the aliase dict; 
+  # Used to manually register aliases in the aliase dict;
   # allows us to register alias <TOOL> -> TOOL.<TOOL>
   proc AddAlias {alias canon} {
     variable alias_index
@@ -531,7 +531,7 @@ namespace eval Commands {
     return ""
   }
 
-  # Every flow (in the same tool) whose own, unflattened 'stages' list names this stage directly - not via @ref 
+  # Every flow (in the same tool) whose own, unflattened 'stages' list names this stage directly - not via @ref
   proc _flows_naming_stage {node} {
     set canon [tdict getval $node canon]
     if {![Node::IsStage $node]} { return {} }
@@ -721,7 +721,7 @@ namespace eval Commands {
 
 
   # Bare tool names (e.g. {VIVADO QUARTUS}) whose FLOW subtree holds the specified flow
-  # Returns the bare tools name 
+  # Returns the bare tools name
   proc ToolsWithFlow {name} {
     variable nodes
     set needle [string toupper $name]
@@ -734,8 +734,8 @@ namespace eval Commands {
   }
 
   # Every node, anywhere in the tree, that declares producing 'name' - the
-  # reverse of a node's own 'produces' field. 
-  # Used for cross-tool "who makes this" discovery and by 
+  # reverse of a node's own 'produces' field.
+  # Used for cross-tool "who makes this" discovery and by
   # FlowControl::_check_freshness to find an artifact's declared upstreams.
   # Returns list of stages
   proc ProducersOf {name} {

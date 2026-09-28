@@ -115,7 +115,7 @@ namespace eval tobj {
   namespace ensemble create
 }
 
-# shorthand: 
+# shorthand:
 proc tstr  {v} { tobj create String $v }
 proc tnum  {v} { tobj create Number $v }
 proc tbool {v} { tobj create Bool   $v }
@@ -137,7 +137,7 @@ proc tlinf {args} {
   }
   return $result
 }
- 
+
 namespace eval tlist {
 
   proc create {args} {
@@ -146,7 +146,7 @@ namespace eval tlist {
     return [tobj create List $nodes]
   }
 
-  # create, but every element is forced to String instead of being typed by tinf. 
+  # create, but every element is forced to String instead of being typed by tinf.
   # i.e. tinf might make "9" type Number
   # Use this for raw text that must survive a round-trip
   proc createstr {args} {

@@ -24,21 +24,25 @@ namespace eval Hog {
   # Entry point to run a command/flow internally
   # mirrors how one would run it from the cmdline:
   # 'Hog::Do vivado create -option example' == './Hog/Do vivado create -option example'
-  # Lets one tool run another tool's command/flow (booting into the tool's IDE when required). 
-  # Inherits the caller's project context;
-  # snapshots/restores Launcher state so a nested call can't corrupt the outer.
+  # Lets one tool run another tool's command/flow
   proc Do {args} {
-    set _saved_argv $::argv
-    set _keys {directive cmd full_cmd args project project_name options ide}
-    set _snap [dict create]
-    foreach _k $_keys { dict set _snap $_k [Launcher::GetOr $_k ""] }
+    set _wrapper [file join [Repo::Get repo_path] Hog Do]
 
-    set ::argv $args
-    set _code [catch {Commands::RunRequest [Commands::Resolve $args]} _res _opts]
-
-    set ::argv $_saved_argv
-    foreach _k $_keys { Launcher::Set $_k [dict get $_snap $_k] }
-    return -options $_opts $_res
+    set ::env(HOG_LOGO_PRINTED) 1
+    Msg Info "Running sub process: $args"
+    set _code [catch {exec -ignorestderr $_wrapper {*}$args >@ stdout 2>@ stderr} _res _opts]
+    if {$_code} {
+      set _exit 1
+      if {[dict exists $_opts -errorcode]} {
+        set _ec [dict get $_opts -errorcode]
+        if {[lindex $_ec 0] eq "CHILDSTATUS" && [llength $_ec] >= 3} {
+          set _exit [lindex $_ec 2]
+        }
+      }
+      return -code error -errorcode [list HOG_SPAWN_FAILED $_exit] \
+        "Hog::Spawn $args failed (exit $_exit): $_res"
+    }
+    return $_res
   }
 }
 

@@ -178,20 +178,25 @@ namespace eval Commands {
       return [dict create stages $stages badrefs $badrefs cycles $cycles]
     }
 
-    # Options of a node plus those of every flow it @references.
+    # Options of a node, plus every flow it @references, plus every bare stage it names
     proc FlattenOptions {node {_seen {}}} {
       set canon [tdict getval $node canon]
       if {$canon in $_seen} { return {} }
       lappend _seen $canon
 
-      # Self first, then each @referenced flow. No warning on an unresolvable ref here 
-      # Commands::Lint reports them once per invocation instead of once per traversal.
+      # Self first, then each @referenced flow, then each bare stage's own options.
       set specs {}
       tlist foreachval o [tdict getobjor $node options [tlist create]] { lappend specs $o }
       tlist foreachval s [tdict getobjor $node stages [tlist create]] {
-        if {![string match "@*" $s]} continue
-        set rnode [_sibling $node [string range $s 1 end]]
-        if {$rnode ne {}} { lappend specs {*}[FlattenOptions $rnode $_seen] }
+        if {[string match "@*" $s]} {
+          set rnode [_sibling $node [string range $s 1 end]]
+          if {$rnode ne {}} { lappend specs {*}[FlattenOptions $rnode $_seen] }
+        } else {
+          set snode [::Commands::GetCommand "TOOL.[::Commands::_tool_of $canon].STAGE.$s"]
+          if {$snode ne {}} {
+            tlist foreachval o [tdict getobjor $snode options [tlist create]] { lappend specs $o }
+          }
+        }
       }
 
       # First spec for an option name wins, so a flow overrides an inherited default.

@@ -278,10 +278,23 @@ namespace eval FlowControl {
     }
   }
 
+  # If missing, run 'script'  as if it were written directly at the call site
+  # - a bare 'return' inside it terminates the *calling stage*
   proc RequireOr {token script} {
-    if {![Has $token]} {
-      uplevel 1 "${script}\nFlowControl::Require $token"
+    if {[Has $token]} { return }
+    set _code [catch {uplevel 1 $script} _res _opts]
+    if {$_code == 0} { return }
+    if {$_code != 2} { return -options $_opts $_res }
+
+    set _flow_run_level -1
+    for {set i 1} {$i < [info level]} {incr i} {
+      if {[lindex [info level $i] 0] eq "FlowControl::Run"} {
+        set _flow_run_level $i
+        break
+      }
     }
+    if {$_flow_run_level < 0} { return -options $_opts $_res }
+    return -level [expr {[info level] - $_flow_run_level}] $_res
   }
 
   # On-disk path of a produced artifact - "" if none was recorded.
@@ -374,10 +387,25 @@ namespace eval FlowControl {
     _set_stages [lrange [_stages] 0 $_i]
   }
 
-  proc ExitFlow {{reason ""}} {
+  proc Exit {{reason ""}} {
     variable _state
     tdict set _state status [tstr exit]
     tdict set _state reason [tstr $reason]
+
+    set _flow_run_level -1
+    for {set i 1} {$i < [info level]} {incr i} {
+      if {[lindex [info level $i] 0] eq "FlowControl::Run"} {
+        set _flow_run_level $i
+        break
+      }
+    }
+
+    if {$_flow_run_level < 0} {
+      Msg Warning "Require called outside of FlowControl::Run. Don't know what to do... returning..."
+      return
+    }
+    
+    return -level [expr {[info level] - $_flow_run_level}]
   }
 
   proc Run {stages flow} {
@@ -403,6 +431,8 @@ namespace eval FlowControl {
       set stage [lindex [_stages] $_i]
       tdict set _state stage [tstr $stage]
       set prev [_stages]
+
+      Msg Info "Flow $flow: Running stage $stage..."
 
       # Resolved per iteration - a stage may insert more stages, or a tool
       # may define its proc lazily.
@@ -433,7 +463,7 @@ namespace eval FlowControl {
         }
         exit {
           tdict set _state stage [tstr ""]
-          if {$reason ne ""} { Msg Info "Flow $flow exiting after '$stage': $reason" }
+          if {$reason ne ""} { Msg Info "Flow \[$flow:$stage\] exiting: $reason" }
           return
         }
       }

@@ -1,5 +1,5 @@
 
-source [file join [file dirname [info script]] tobj.tcl]
+source [file join [file dirname [info script]] tobj tobj.tcl]
 
 namespace eval DataStore {
   variable _store_template {
@@ -29,25 +29,25 @@ namespace eval DataStore {
       proc SetStr {args} {
         if {[llength $args] < 2} { error "@DS@::SetStr: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
-        tdict set _ctx {*}[lrange $args 0 end-1] [tobj String [lindex $args end]]
+        tdict set _ctx {*}[lrange $args 0 end-1] [tobj create String [lindex $args end]]
       }
 
       proc SetNum {args} {
         if {[llength $args] < 2} { error "@DS@::SetNum: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
-        tdict set _ctx {*}[lrange $args 0 end-1] [tobj Number [lindex $args end]]
+        tdict set _ctx {*}[lrange $args 0 end-1] [tobj create Number [lindex $args end]]
       }
 
       proc SetBool {args} {
         if {[llength $args] < 2} { error "@DS@::SetBool: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
-        tdict set _ctx {*}[lrange $args 0 end-1] [tobj Bool [lindex $args end]]
+        tdict set _ctx {*}[lrange $args 0 end-1] [tobj create Bool [lindex $args end]]
       }
 
       proc SetNull {args} {
         if {[llength $args] < 1} { error "@DS@::SetNull: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
-        tdict set _ctx {*}$args [tobj Null]
+        tdict set _ctx {*}$args [tobj create Null]
       }
 
       proc Set {args} {
@@ -268,10 +268,10 @@ namespace eval DataStore {
 
     set exitCode [expr {[llength $cmd] > 1 ? [lindex $cmd 1] : 0}]
     set exitInfo [tdict create]
-    tdict set exitInfo code [tobj Number $exitCode]
+    tdict set exitInfo code [tobj create Number $exitCode]
     if {$exitCode != 0} {
-      tdict set exitInfo error_info [tobj String [expr {[info exists ::errorInfo] ? $::errorInfo : ""}]]
-      tdict set exitInfo error_code [tobj String [expr {[info exists ::errorCode] ? $::errorCode : ""}]]
+      tdict set exitInfo error_info [tobj create String [expr {[info exists ::errorInfo] ? $::errorInfo : ""}]]
+      tdict set exitInfo error_code [tobj create String [expr {[info exists ::errorCode] ? $::errorCode : ""}]]
     }
     tdict set root _exit $exitInfo
 

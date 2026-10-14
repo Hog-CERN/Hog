@@ -58,11 +58,12 @@ proc InitHog {} {
   set top_path  [file join $repo_path Top]
 
   source [file join $tcl_path hog.tcl]
+  source [file join $tcl_path core tobj tobj.tcl]
+  source [file join $tcl_path core hogclass.tcl]
   source [file join $tcl_path core datastore.tcl]
   source [file join $tcl_path create_project.tcl]
   source [file join $tcl_path core listfile.tcl]
   source [file join $tcl_path core project.tcl]
-  source [file join $tcl_path core tobj.tcl]
   source [file join $tcl_path core commands.tcl]
   source [file join $tcl_path core tools.tcl]
   source [file join $tcl_path core flow.tcl]

@@ -6473,6 +6473,8 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
       # Default behaviour, dont use simpass string and simulation is not quiet
       set use_simpass_str 0
       set quiet_sim ""
+      set use_xsim_vcd 0
+      set xsim_vcd_runtime 120ns
 
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
@@ -6496,6 +6498,12 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
           } else {
             set quiet_sim ""
           }
+          if {[string toupper $prop_name] == "HOG_XSIM_VCD" && $prop_val == 1} {
+            set use_xsim_vcd 1
+          }
+          if {[string toupper $prop_name] == "HOG_XSIM_VCD_RUNTIME" && $prop_val != ""} {
+            set xsim_vcd_runtime $prop_val
+          }
         }
 
         Msg Info "Creating simulation scripts for $s..."
@@ -6513,6 +6521,28 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         if {([string tolower $simulator] eq "xsim")} {
           set sim_name "xsim:$s"
 
+          if {$use_xsim_vcd == 1} {
+            set xsim_vcd_driver [file normalize "$repo_path/Hog/Tcl/integrated/xsim-vcd.tcl"]
+            set xsim_vcd_file "$s.vcd"
+            set xsim_vcd_path "$sim_dir/xsim/$xsim_vcd_file"
+            if {![file exists $xsim_vcd_driver]} {
+              Msg Error "XSim VCD driver is missing: $xsim_vcd_driver"
+              lappend failed $sim_name
+              continue
+            }
+            if {[llength [get_files -quiet $xsim_vcd_driver]] == 0} {
+              AddFile $xsim_vcd_driver [get_filesets $s]
+            }
+            if {[info exists ::env(HOG_XSIM_VCD_RUNTIME)]} {
+              set xsim_vcd_runtime $::env(HOG_XSIM_VCD_RUNTIME)
+            }
+            set_property XSIM.SIMULATE.RUNTIME 0ns [get_filesets $s]
+            set_property XSIM.SIMULATE.CUSTOM_DO [file tail $xsim_vcd_driver] [get_filesets $s]
+            set ::env(HOG_XSIM_VCD_RUNTIME) $xsim_vcd_runtime
+            set ::env(HOG_XSIM_VCD_FILE) $xsim_vcd_file
+            Msg Info "Enabling XSim VCD output for $s: $xsim_vcd_path ($xsim_vcd_runtime)"
+          }
+
           set simulation_command "launch_simulation $quiet_sim -simset [get_filesets $s]"
           if {[catch $simulation_command log]} {
             # Explicitly close xsim simulation, without closing Vivado
@@ -6522,6 +6552,14 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
           } else {
             # Explicitly close xsim simulation, without closing Vivado
             close_sim
+            if {$use_xsim_vcd == 1 && ![file exists $xsim_vcd_path]} {
+              Msg CriticalWarning "XSim VCD output was requested but not generated: $xsim_vcd_path"
+              lappend failed $sim_name
+              continue
+            }
+            if {$use_xsim_vcd == 1} {
+              Msg Info "Generated XSim VCD: $xsim_vcd_path"
+            }
             # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
             if {$use_simpass_str == 1} {
               # Get the simulation output log

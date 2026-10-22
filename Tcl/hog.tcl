@@ -6533,9 +6533,6 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
             if {[llength [get_files -quiet $xsim_vcd_driver]] == 0} {
               AddFile $xsim_vcd_driver [get_filesets $s]
             }
-            if {[info exists ::env(HOG_XSIM_VCD_RUNTIME)]} {
-              set xsim_vcd_runtime $::env(HOG_XSIM_VCD_RUNTIME)
-            }
             set_property XSIM.SIMULATE.RUNTIME 0ns [get_filesets $s]
             set_property XSIM.SIMULATE.CUSTOM_DO [file tail $xsim_vcd_driver] [get_filesets $s]
             set ::env(HOG_XSIM_VCD_RUNTIME) $xsim_vcd_runtime

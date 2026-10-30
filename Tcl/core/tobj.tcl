@@ -2,7 +2,7 @@
 # Typed object storage
 # wraps variables in a dict containing type and value
 # allows us to export data in a json format
-# tclint-ignore-file redefined-builtin
+# tclint-disable redefined-builtin
 
 namespace eval tobj {
   variable _types_ {String Number Bool Null Dict List}

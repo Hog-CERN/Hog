@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -33,23 +34,23 @@ env:
 jobs:
   tag_official_version:
     runs-on: ubuntu-latest
-    container: hogcern/hog:develop
+    container: hogcern/hog:2026.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: tag_official_version
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
           commit_message=$(git show --pretty=format:"%B" --no-patch)
           if [[ $commit_message == "Merge pull request"* ]]; then
             echo "Removing merge commit..."
@@ -66,6 +67,10 @@ jobs:
             exit 1;
           }
           new_tag=${note[2]}
+          if [ "$new_tag" = "DO_NOT_TAG" ]; then
+            echo "No project was modified in this MR, will not create a tag."
+            exit 0
+          fi
           if [ -z "$new_tag" ]; then
             echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only merge commis, and that the merge_and_tag job in your Merge pipeline succeded."
             echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/02-GitHub-Actions/01-Setup-Actions.html#merge-commit-handling-on-github-com"

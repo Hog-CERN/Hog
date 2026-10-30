@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -50,6 +51,10 @@ function print_hog() {
         echo -e "$line"
       fi
     done < "$logo_file"
+    echo ""
+    echo "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
+    sleep 1
+    echo ""
     # export HOG_LOGO_PRINTED=1
   # else
   #   Msg Warning "Logo file $logo_file doesn't exist"

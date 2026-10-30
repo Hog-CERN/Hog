@@ -22,6 +22,9 @@
 #    }
 #  }
 
+# if {![info exists tcl_path]} {
+#   set tcl_path [file normalize "[file dirname [info script]]/.."]
+# }
 
 source $tcl_path/utils/hdl_parser.tcl
 
@@ -37,7 +40,7 @@ proc _create_hier_meta {} {
   set hier_meta [dict create]
   dict set hier_meta all_modules {}
   dict set hier_meta proj_files {}
-  dict set heir_meta parsed_files_cache {}
+  dict set hier_meta parsed_files_cache {}
   return $hier_meta
 }
 
@@ -125,7 +128,6 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
 
   Msg Debug "Parsing $f"
   set discovered_modules [list]
-
   set hdl_constructs [parse_hdl_file $f]
   foreach node $hdl_constructs {
     Msg Debug "[hdl_node_string $node]"
@@ -137,6 +139,7 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
     set node_name [dict get $node name]
 
     set references [list]
+    set sv_include_files [list]
     foreach component [dict get $node components_declared] {
       lappend references "unknown.component.[dict get $component name]"
     }
@@ -147,6 +150,13 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
       } elseif { [dict get $inst type] == "entity_inst"} {
         set split_name [split [dict get $inst mod_name] "."]
         lappend references "[lindex $split_name 0].component.[lindex $split_name 1]"
+      } elseif { [dict get $inst type] == "sv_import"} {
+        lappend references "unknown.sv_package.[dict get $inst mod_name]"
+      } elseif { [dict get $inst type] == "sv_include"} {
+        lappend sv_include_files [dict get $inst mod_name]
+      } elseif { [dict get $inst type] == "vhdl_pkg_inst"} {
+        set split_name [split [dict get $inst mod_name] "."]
+        lappend references "[lindex $split_name 0].vhdl_package.[lindex $split_name 1]"
       }
     }
 
@@ -159,10 +169,13 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
 
     set references [lsort -unique $references]
     dict set node references $references
+    dict set node sv_includes $sv_include_files
 
     set mod_properties [dict create]
-    if {$ext eq ".v" || $ext eq ".sv" || [lsearch -exact $file_properties "SystemVerilog"] != -1} {
-        if {$ext eq ".sv" || [lsearch -exact $file_properties "SystemVerilog"] != -1} {
+    if {$ext eq ".v" || $ext eq ".vh" || $ext eq ".sv" || $ext eq ".svh" ||
+        [lsearch -exact $file_properties "SystemVerilog"] != -1} {
+        if {$ext eq ".sv" || $ext eq ".svh" ||
+            [lsearch -exact $file_properties "SystemVerilog"] != -1} {
             dict set mod_properties filetype "SystemVerilog"
         } else {
             dict set mod_properties filetype "Verilog"
@@ -195,6 +208,87 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
   return $discovered_modules
 }
 
+proc _xml_extract_blocks {xml_content tag} {
+  set blocks [list]
+  set open_tag "<$tag>"
+  set close_tag "</$tag>"
+  set cursor 0
+  while {1} {
+    set start [string first $open_tag $xml_content $cursor]
+    if {$start == -1} { break }
+    set content_start [expr {$start + [string length $open_tag]}]
+    set end [string first $close_tag $xml_content $content_start]
+    if {$end == -1} { break }
+    set block [string range $xml_content $content_start [expr {$end - 1}]]
+    lappend blocks [string trim $block]
+    set cursor [expr {$end + [string length $close_tag]}]
+  }
+  return $blocks
+}
+
+
+proc _parse_xci_xml {xml_content} {
+  set view_list [list]
+
+  set filesets_dict [dict create]
+  foreach filesets_block [_xml_extract_blocks $xml_content "spirit:fileSets"] {
+    foreach fs_block [_xml_extract_blocks $filesets_block "spirit:fileSet"] {
+      set fs_name [lindex [_xml_extract_blocks $fs_block "spirit:name"] 0]
+      if {$fs_name eq ""} { continue }
+      set fs_files [list]
+      foreach file_block [_xml_extract_blocks $fs_block "spirit:file"] {
+        set file_name [lindex [_xml_extract_blocks $file_block "spirit:name"] 0]
+        set logical_name [lindex [_xml_extract_blocks $file_block "spirit:logicalName"] 0]
+        if {$file_name ne ""} {
+          set file_dict [dict create name $file_name logicalName $logical_name]
+          lappend fs_files $file_dict
+        }
+      }
+      dict set filesets_dict $fs_name $fs_files
+    }
+  }
+
+  foreach views_block [_xml_extract_blocks $xml_content "spirit:views"] {
+    foreach view_block [_xml_extract_blocks $views_block "spirit:view"] {
+      set view_name [lindex [_xml_extract_blocks $view_block "spirit:name"] 0]
+      set model_name [lindex [_xml_extract_blocks $view_block "spirit:modelName"] 0]
+      set view_files [list]
+      foreach fileSetRef [_xml_extract_blocks $view_block "spirit:fileSetRef"] {
+        set fs_name [lindex [_xml_extract_blocks $fileSetRef "spirit:localName"] 0]
+        if {$fs_name ne "" && [dict exists $filesets_dict $fs_name]} {
+          set view_files [concat $view_files [dict get $filesets_dict $fs_name]]
+        }
+      }
+
+      set view_type ""
+      if {[string match "xilinx_*behavioralsimulation" $view_name]} {
+        set view_type "behav"
+      } elseif {[string match "xilinx_*simulationwrapper" $view_name]} {
+        set view_type "wrapper"
+      }
+
+      if {$view_type ne "" && [llength $view_files] > 0 && $model_name ne ""} {
+        set view_dict [dict create name $view_name type $view_type modelName $model_name files $view_files]
+        lappend view_list $view_dict
+      }
+    }
+  }
+
+  set wrapper_views [list]
+  set non_wrapper_views [list]
+
+  foreach view $view_list {
+    set view_type [dict get $view type]
+    if {$view_type eq "wrapper"} {
+      lappend wrapper_views $view
+    } else {
+      lappend non_wrapper_views $view
+    }
+  }
+
+  return [dict create wrappers $wrapper_views nonwrappers $non_wrapper_views]
+}
+
 proc _hier_parse_ip {hier_meta_ref file_info {include_gen_prods 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
@@ -221,76 +315,132 @@ proc _hier_parse_ip {hier_meta_ref file_info {include_gen_prods 0}} {
   set xci_dir [file dirname $f]
   set resolved_output_dir [file normalize [file join $xci_dir $output_dir]]
 
-  # Recursively scan for HDL files (max 5 levels deep)
   set hdl_files [list]
-  set dirs_to_scan [list [list $resolved_output_dir 0]]
+  set all_subs [list]
 
   if { $include_gen_prods == 1} {
-    while {[llength $dirs_to_scan] > 0} {
-      set current [lindex $dirs_to_scan 0]
-      set dirs_to_scan [lrange $dirs_to_scan 1 end]
-      set current_dir [lindex $current 0]
-      set current_depth [lindex $current 1]
+    set xml_path [file join $xci_dir "${name}.xml"]
+    if {[file exists $xml_path]} {
+      if {[catch {open $xml_path r} xml_fid]} {
+        Msg Warning "Warning: Could not open XML file: $xml_path"
+      } else {
+        set xml_content [read $xml_fid]
+        close $xml_fid
 
-      if {$current_depth >= 5} { continue }
-      if {![file isdirectory $current_dir]} { continue }
+        set view_data [_parse_xci_xml $xml_content]
+        set wrapper_views [dict get $view_data wrappers]
+        set non_wrapper_views [dict get $view_data nonwrappers]
 
-      set entries [glob -nocomplain -directory $current_dir *]
-      foreach entry $entries {
-        if {[file isfile $entry]} {
-          set ext [string tolower [file extension $entry]]
-          if {$ext eq ".vhd" || $ext eq ".v" || $ext eq ".sv"} {
-            lappend hdl_files $entry
+        # For vivado ips, it seems we have a wrapper view and behav simulation views
+        # Wrapper will only have 1 file (I think), and will depend upon the behav simulation views, so
+        # for compile order, wrapper --> view --> view_files
+        # where view is a dummy node that is used to link the files back to the wrapper
+
+        foreach view $non_wrapper_views {
+          set view_name [dict get $view name]
+          set view_type [dict get $view type]
+          set model_name [dict get $view modelName]
+          set view_files [dict get $view files]
+
+
+          # Vivado will generate duplicate files for different langauges<
+          # we should discover the duplicates first so we can link them to each other
+          # that we in compile_order we can determine which one to compile based on user_pref(?) or wrapper
+          set unique_files [dict create]
+          foreach file_dict $view_files {
+            set file_name [dict get $file_dict name]
+            set logical_name [dict get $file_dict logicalName]
+            set file_base [file rootname [file tail $file_name]]
+
+            if {![dict exists $unique_files $file_base]} {
+              dict set unique_files $file_base [list]
+            }
+            dict lappend unique_files $file_base [dict create name $file_name logicalName $logical_name]
           }
-        } elseif {[file isdirectory $entry]} {
-          set dir_name [file tail $entry]
-          # Skip hdl and synth directories
-          if {$dir_name ne "synth"} {
-            lappend dirs_to_scan [list $entry [expr {$current_depth + 1}]]
+
+
+          set view_file_refs [list]
+          dict for {base_name file_list} $unique_files {
+            set all_node_keys [list]
+            foreach file_dict $file_list {
+              set file_name [dict get $file_dict name]
+              set logical_name [dict get $file_dict logicalName]
+              lappend all_node_keys "${logical_name}.xci_gen_file.${file_name}"
+            }
+
+            foreach file_dict $file_list {
+              set file_name [dict get $file_dict name]
+              set logical_name [dict get $file_dict logicalName]
+              set full_file_path [file normalize [file join $resolved_output_dir $file_name]]
+              set file_node_key "${logical_name}.xci_gen_file.${file_name}"
+
+              set file_ext [string tolower [file extension $file_name]]
+              set filetype "Unknown"
+              if {$file_ext eq ".v"} {
+                set filetype "Verilog"
+              } elseif {$file_ext eq ".vhd" || $file_ext eq ".vhdl"} {
+                set filetype "VHDL"
+              } elseif {$file_ext eq ".sv"} {
+                set filetype "SystemVerilog"
+              }
+
+              set file_props [dict create filetype $filetype logicalName $logical_name xciRole "generated"]
+
+              # Add duplicates
+              if {[llength $file_list] > 1} {
+                set other_keys [lsearch -all -inline -not -exact $all_node_keys $file_node_key]
+                dict set file_props duplicates $other_keys
+              }
+
+              _store_module hier_meta $file_name $logical_name "xci_gen_file" $full_file_path [list] $file_props
+              lappend view_file_refs $file_node_key
+            }
           }
+
+          set view_node_key "${library}.${view_name}.${model_name}"
+          set view_props [dict create filetype "XCI_VIEW" xciRole "view" viewType $view_type]
+          _store_module hier_meta $model_name $library $view_name "" $view_file_refs $view_props
+        }
+
+        foreach wrapper $wrapper_views {
+          set wrapper_model_name [dict get $wrapper modelName]
+          set wrapper_name [dict get $wrapper name]
+
+          set wrapper_refs [list]
+          foreach view $non_wrapper_views {
+            set model_name [dict get $view modelName]
+            set view_name [dict get $view name]
+            set view_node_key "${library}.${view_name}.${model_name}"
+            lappend wrapper_refs $view_node_key
+          }
+
+          # let's use the first file in the list as the wrapper file
+          set wrapper_file [dict get [lindex [dict get $wrapper files] 0] name]
+          set wrapper_file [file normalize [file join $resolved_output_dir $wrapper_file]]
+          set file_ext [string tolower [file extension $wrapper_file]]
+
+          set wrapper_node_key "${library}.xci_wrapper.${wrapper_model_name}"
+          set filetype "Unknown"
+          if {$file_ext eq ".v"} {
+            set filetype "Verilog"
+          } elseif {$file_ext eq ".vhd" || $file_ext eq ".vhdl"} {
+            set filetype "VHDL"
+          } elseif {$file_ext eq ".sv"} {
+            set filetype "SystemVerilog"
+          }
+          set wrapper_props [dict create filetype $filetype xciRole "wrapper"]
+          _store_module hier_meta $wrapper_model_name $library "xci_wrapper" $wrapper_file $wrapper_refs $wrapper_props
+
+          lappend all_subs $wrapper_node_key
         }
       }
     }
   }
 
   set file_properties [file_info_properties $file_info]
-  set all_subs [list]
-
-  foreach hdl_file $hdl_files {
-    set ext [string tolower [file extension $hdl_file]]
-
-    # a lot of xci's share submodules, so we can just reuse the ones we already parsed
-    set file_checksum [_compute_file_checksum $hdl_file]
-    if {$file_checksum ne "" && [dict exists $hier_meta parsed_files_cache $file_checksum]} {
-      Msg Debug "Reusing previously parsed modules for $hdl_file"
-      set discovered_modules [dict get $hier_meta parsed_files_cache $file_checksum]
-      set all_subs [concat $all_subs $discovered_modules]
-      continue
-    }
-
-
-
-    set hdl_file_info [_create_proj_file_info $hdl_file $library $file_properties]
-    set discovered_modules [list]
-
-    if {$ext eq ".vhd" || $ext eq ".vhdl" || $ext eq ".v" || $ext eq ".sv"} {
-      set discovered_modules [_hier_parse_hdl hier_meta $hdl_file_info]
-    }
-
-    if {$file_checksum ne ""} {
-      dict set hier_meta parsed_files_cache $file_checksum $discovered_modules
-    }
-
-    set all_subs [concat $all_subs $discovered_modules]
-  }
 
   set all_subs [lsort -unique $all_subs]
 
-  if {[llength $all_subs] == 0} {
-    # if no submodules, we probably haven't generated the output, so store xci as component
-    # so other rtl can find it
-    _store_module hier_meta $name $library "component" $f $all_subs $mod_properties
-  }
   _store_module hier_meta $name $library "xci" $f $all_subs $mod_properties
 
 
@@ -302,7 +452,8 @@ proc _hier_parse_file {hier_meta_ref file_info {include_gen_prods 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
   set ext [string tolower [file_info_ext $file_info]]
-  if {$ext eq ".vhd" || $ext eq ".vhdl" || $ext eq ".v" || $ext eq ".sv"} {
+  if {$ext eq ".vhd" || $ext eq ".vhdl" || $ext eq ".v" || $ext eq ".sv" ||
+      $ext eq ".vh" || $ext eq ".svh"} {
     _hier_parse_hdl hier_meta $file_info
   } elseif {$ext eq ".xci"} {
     _hier_parse_ip hier_meta $file_info $include_gen_prods
@@ -384,6 +535,23 @@ proc _reference_resolver {hier_meta_ref} {
       set found 0
       set resolved_mod_name ""
 
+      if {$library == "unknown" && $type == "sv_package"} {
+        set pattern ".*\\.sv_package\\.$name\$"
+        set matches [dict filter [dict get $hier_meta all_modules] \
+            script {k v} {expr {[regexp $pattern $k]}}]
+        if {[dict size $matches] == 0} {
+          lappend new_references $ref
+          Msg Debug "No sv_package match found for $ref in $mod_key"
+        } else {
+          dict for {k v} $matches {
+            lappend new_references $k
+            Msg Debug "Mod: $mod_key resolved $ref to $k"
+            incr total_resolved
+          }
+        }
+        continue
+      }
+
       if { ($library != "unknown" && $library != "work" && $type != "component") || ($library == "unknown" && $type != "component") } {
         # puts "Keeping reference as-is: $ref"
         lappend new_references $ref
@@ -398,24 +566,30 @@ proc _reference_resolver {hier_meta_ref} {
       }
 
 
-      set pattern "${library}\.\[vhdl_entity|verilog_module\]\\.$name\$"
-      set matches [ dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
-      if {[dict size $matches] == "0"}  {
-        set pattern ".*\.\[vhdl_entity|verilog_module\]\\.$name\$"
-        set matches [ dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+      set pattern "${ref_lib}\\.(vhdl_entity|verilog_module)\\.$name\$"
+      set matches [dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+      if {[dict size $matches] == 0} {
+        set pattern ".*\\.(vhdl_entity|verilog_module)\\.$name\$"
+        set matches [dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+        if {[dict size $matches] > 1} {
+          Msg Warning "Ambiguous component reference '$name' in '$mod_key': multiple libraries match, picking first found"
+        }
       }
 
-      if {[dict size $matches] == "0"}  {
+      # Also resolve to XCI wrapper/IP types (e.g. Vivado-generated IPs instantiated as components)
+      if {[dict size $matches] == 0} {
+        set pattern ".*\\.(xci_wrapper|xci)\\.$name\$"
+        set matches [dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+      }
+
+      if {[dict size $matches] == 0} {
         lappend new_references $ref
-        Msg Debug "No match found"
-        # puts "Debug: No match found for ref: $ref in mod: $mod_key"
+        Msg Debug "No match found for $ref in $mod_key"
       } else {
         dict for {k v} $matches {
           lappend new_references $k
           Msg Debug "Mod: $mod_key resolved $ref to $k"
-          # puts "Debug: Mod: $mod_key resolved $ref to $k"
           incr total_resolved
-          break
         }
       }
     }
@@ -423,6 +597,30 @@ proc _reference_resolver {hier_meta_ref} {
     dict set hier_meta all_modules $mod_key references $new_references
   }
 
+  # Second pass: resolve `include file dependencies.
+  # For each module that recorded sv_includes, find the project file matching
+  # each included basename and add all modules defined in that file as references.
+  dict for {mod_key mod} [dict get $hier_meta all_modules] {
+    if {![dict exists $mod sv_includes]} { continue }
+    set sv_includes [dict get $mod sv_includes]
+    if {[llength $sv_includes] == 0} { continue }
+
+    set new_refs [dict get $mod references]
+    foreach include_file $sv_includes {
+      dict for {proj_file _} [dict get $hier_meta proj_files] {
+        if {[file tail $proj_file] ne $include_file} { continue }
+        dict for {k m} [dict get $hier_meta all_modules] {
+          if {[dict get $m file_path] eq $proj_file &&
+              [lsearch -exact $new_refs $k] == -1} {
+            lappend new_refs $k
+            incr total_resolved
+            Msg Debug "Mod: $mod_key include-depends on $k (via $include_file)"
+          }
+        }
+      }
+    }
+    dict set hier_meta all_modules $mod_key references $new_refs
+  }
 
   return [dict create total $total_resolved resolutions $resolution_list]
 }
@@ -511,7 +709,7 @@ proc _debug_string_hier_meta {hier_meta_ref {indent 0}} {
 
 
 proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
-{compile_order 0} {light ""} {top_module_override ""} {ignore_opt_list ""} {include_ieee 0} {include_gen_prods 0}} {
+{compile_order 0} {light ""} {top_module_override ""} {ignore_opt_list ""} {include_ieee 0} {include_gen_prods 0} {quiet 0}} {
   set hier_meta [_create_hier_meta]
 
   set top_module ""
@@ -606,10 +804,14 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
   #Msg Debug "[_debug_string_hier_meta hier_meta]"
   set p [dict create]
   if {$compile_order} {
-    print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file
+    set compile_order_dict [print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file $quiet]
+    if {$output_path != ""} {
+      close $output_file
+    }
+    return $compile_order_dict
   } else {
     set p [print_hierarchy hier_meta $top_module $output_file $ignore_list $bad_nodes $light]
-    PrintOrWrite $output_file "\n\n=====Packages in project:====="
+    if {[llength $p] != 0} { PrintOrWrite $output_file "\n\n=====Packages in project:=====" }
     dict for {lib pkg_list} $p {
       if {[llength $pkg_list] == 0} {
         continue
@@ -626,41 +828,51 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
   }
 }
 
-proc print_compile_order {hier_meta_ref sorted_list {output_file ""}} {
+proc print_compile_order {hier_meta_ref sorted_list {output_file ""} {quiet 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
-  set groups [list]
-  set curr_file_type ""
-  set curr_files [list]
+  # Build an ordered flat list {file_path library ...}, deduplicating by
+  # {file_path, library} pair so the same file compiled into two libraries
+  # both appear.
+  # Pass 1: DFS-reachable modules in topological (dependency-first) order.
+  # Pass 2: remaining project files not reachable from the top module (e.g.
+  #         packages, header files, orphaned modules) so every listed file
+  #         gets compiled.
+  set result [list]
+  set seen [dict create]
 
   foreach mod_key $sorted_list {
     set mod [dict get $hier_meta all_modules $mod_key]
     set file_path [dict get $mod file_path]
-    set props [dict get $mod properties]
-    set file_type [dict get $props filetype]
+    set library   [dict get $mod library]
+    set pair "${file_path}\t${library}"
 
-    if {$file_type ne $curr_file_type} {
-      if {$curr_file_type ne ""} {
-        lappend groups [list $curr_file_type $curr_files]
-      }
-      set curr_file_type $file_type
-      set curr_files [list $file_path]
-    } else {
-      lappend curr_files $file_path
+    if {$file_path eq "" || [dict exists $seen $pair]} {
+      continue
+    }
+    dict set seen $pair 1
+    lappend result $file_path $library
+  }
+
+  dict for {file file_info} [dict get $hier_meta proj_files] {
+    set library [file_info_library $file_info]
+    set pair "${file}\t${library}"
+    if {[dict exists $seen $pair]} {
+      continue
+    }
+    dict set seen $pair 1
+    lappend result $file $library
+  }
+
+  if {$quiet == 0} {
+    foreach {file lib} $result {
+      PrintOrWrite $output_file "$file $lib"
     }
   }
 
-  if {$curr_file_type ne ""} {
-    lappend groups [list $curr_file_type $curr_files]
-  }
-
-  foreach group $groups {
-    set type [lindex $group 0]
-    set files [lsort -unique [lindex $group 1]]
-    set output_line "$type \{$files\}"
-    PrintOrWrite $output_file $output_line
-  }
+  return $result
 }
+
 
 proc print_hierarchy {hier_meta_ref module {output_file ""} {ignore_list ""} \
 {bad_nodes ""} {light 0} {indent 0} {stack_ref ""} {last_properties_ref ""} {is_last 1}} {

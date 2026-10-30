@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -45,6 +46,9 @@ before_script:
   - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
   - git config --global --add safe.directory . || ':'
   - git config --global --add safe.directory ./Hog || ':'
+  - if [ -z "$CI_COMMIT_TAG" ]; then
+      git checkout -B "$CI_COMMIT_REF_NAME" "$CI_COMMIT_SHA";
+    fi
   - git submodule update --init Hog || ':'
   - source Hog/Other/HogPrint.sh || ':'
   - print_hog Hog/ || ':'

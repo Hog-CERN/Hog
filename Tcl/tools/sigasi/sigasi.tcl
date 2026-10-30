@@ -1,0 +1,332 @@
+# Note: This is mostly for the benefit of CI/CD pipelines as if using a code editor
+# with Sigasi integration then code quality and formatting are easy to access
+
+# The CLI functionality requires a paid license.
+
+# These proceedures should be available regardless of which synthesis tool is used.
+
+namespace eval Tools::Sigasi {
+  Tools::RegisterTool [namespace current] {
+    name "sigasi-cli"
+    vendor "Sigasi"
+    ref_name {sigasi}
+    description "Sigasi-cli toolchain"
+  }
+
+  RegisterCommand export {
+    aliases {sigasi-e e}
+    description " exports a CSV file for sigasi project creation "
+    requires_proj true
+    options {
+      {new  "Create a new style Sigasi project file"}
+    }
+    script  { Tools::Sigasi::sigasi-export}
+  }
+  RegisterCommand format {
+    aliases {sigasi-f f}
+    requires_proj true
+    description " sigasi-cli wrapper to run repo formatting settings across all files in the repo  "
+    script  { Tools::Sigasi::sigasi-format }
+  }
+  RegisterCommand document {
+    aliases {sigasi-d doc d docs}
+    description " sigasi-cli wrapper to create basic documentation of the project "
+    requires_proj true
+    script  {Tools::Sigasi::sigasi-document}
+  }
+  RegisterCommand lint {
+    aliases {sigasi-l l}
+    description " sigasi-cli wrapper to generate a code quality report "
+    requires_proj true
+    script  {Tools::Sigasi::sigasi-lint}
+  }
+
+  proc Initialize {} {
+    puts "Initializing Sigasi tool..."
+    if { [catch {exec which sigasi-cli} ] } {
+      puts "sigasi-cli not available -- check sigasi-cli is in PATH"
+      exit 1
+    } else {
+      if { [catch {exec -- sigasi-cli --license } ] } {
+        puts "check SIGASI_LM_LICENSE_FILE is set"
+        exit 1
+      }
+    }
+    # check that the rest of Hog is existing as expected
+    if { ![namespace exists ::Repo] } {
+      Msg Error " sigasi has been called before Repo namespace has been created "
+    }
+  }
+
+  # tests if sigasi project file exists. If it does not exist it creates a new project.
+  proc _test_sigasi_project {repo_path} {
+    if { ![file exists $repo_path/project.sigasi] } {
+      Msg Info "attempting to create associated sigasi project file"
+      _new_sigasi-export
+      return "yes"
+    }
+    return "no"
+  }
+
+  # create a default dict. Then we can merge in the repo.conf dict (overwriting) followed by the project dict (overwriting)
+  proc _create_sigasi_default_dict {} {
+    dict set sigasi_defaults DIAGRAMS "LINKED"
+    dict set sigasi_defaults DESIGN_UNITS_PER_PAGE 25
+    dict set sigasi_defaults DIAGRAM_NODE_LIMIT 2500
+    dict set sigasi_defaults DOC_DIR "./sigasi-docs"
+    dict set sigasi_defaults REPORT_FORMAT "plain"
+    dict set sigasi_defaults REPORT_OUTFILE "./sigasi_report.txt"
+    dict set sigasi_defaults VHDL_VERSION 2008
+    dict set sigasi_defaults KEYWORDS "lowercase"
+    dict set sigasi_defaults TAB_WIDTH 4
+
+    return $sigasi_defaults
+  }
+
+  # create default and merge with repo and project dicts from config files
+  proc get_sigasi_conf {} {
+    set default_dict [_create_sigasi_default_dict]
+    set out_dict $default_dict
+
+    Msg Info " retrieving the sigasi configuration settings "
+    if { [Repo::Exists config  sigasi ] } {
+      set sigasi_dict [ ::tobj::native [ Repo::Get config sigasi ]]
+      Msg Debug "debug merge 1 $sigasi_dict "
+      set out_dict [dict merge $default_dict $sigasi_dict]
+    }
+
+    set config [ CurrentProject::Get config ]
+    if { [  CurrentProject::Exists config  sigasi ] } {
+      set sigasi_dict [ ::tobj::native [ CurrentProject::Get config sigasi ]]
+      Msg Debug "debug merge 2 $sigasi_dict "
+      set out_dict [dict merge $out_dict $sigasi_dict]
+    }
+
+    return $out_dict
+  }
+
+  proc sigasi-export {} {
+    if {[Launcher::GetOr options new 0] == 1} {
+      _new_sigasi-export
+      exit 0
+    }
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    Msg Info "Creating Sigasi CSV files for project $project_name..."
+
+    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+    # puts " debug project_files $project_files"
+
+    set csv_file [open "$repo_path/sigasi_$project_name.csv" w]
+
+    foreach source_file $project_files {
+      if {
+        [file extension $source_file] eq ".vhd"
+        || [file extension $source_file] eq ".vhdl"
+        || [file extension $source_file] eq ".sv"
+        || [file extension $source_file] eq ".v"
+      } {
+        set file_dict [dict get $project_files $source_file]
+        puts $csv_file [concat [file rootname [dict get $file_dict libraries]] "," $source_file]
+      }
+    }
+
+    close $csv_file
+    Msg Info "Sigasi CSV file created: sigasi_$project_name.csv"
+    Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
+    Msg Info "More info at: \
+      https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
+    exit 0
+  }
+
+  proc _new_sigasi-export {} {
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    Msg Info "Creating new style Sigasi project file for project $project_name..."
+
+    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+
+    DataStore::create Sigasi
+    Sigasi::Set name $project_name
+    Sigasi::Set targets ""
+    Sigasi::Set targets hdl
+    Sigasi::Set targets hdl libraryMapping
+    Sigasi::Set targets hdl libraryMapping [::tobj::create Dict {}]
+
+    foreach source_file $project_files {
+      if {
+        [file extension $source_file] eq ".vhd"
+        || [file extension $source_file] eq ".vhdl"
+        || [file extension $source_file] eq ".sv"
+        || [file extension $source_file] eq ".v"
+      } {
+        set file_dict [dict get $project_files $source_file]
+        set lib [file rootname [dict get $file_dict libraries]]
+        Sigasi::Set targets hdl libraryMapping $source_file $lib
+        # puts " $source_file $lib "
+      }
+    }
+
+    Sigasi::SaveJsonToFile "$repo_path/project.sigasi" 1
+    Msg Info "Sigasi project file created: $repo_path/project.sigasi"
+  }
+
+  proc sigasi-lint {} {
+
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    set remove_project_file [_test_sigasi_project $repo_path]
+    Msg Info "Generating a code quality report for project $project_name..."
+
+    file mkdir $repo_path/sigasi_lint
+    set outfile "$repo_path/sigasi_lint/$project_name"
+
+    set options_list ""
+
+    set sigasi_conf [get_sigasi_conf]
+    #Msg Info "sigasi config dict: $sigasi_conf"
+
+    if {[dict exists $sigasi_conf LIBRARY_DATABASE]} {
+      set libraries [dict get $sigasi_conf LIBRARY_DATABASE]
+      foreach lib [split $libraries ,] {
+        lappend options_list "--library-database=[string trim $lib]"
+      }
+    }
+
+    set report_format [dict get $sigasi_conf REPORT_FORMAT]
+    lappend options_list "--$report_format"
+
+    if { $report_format == "json" || $report_format == "sonarqube" } {
+      set filetype ".json"
+    } elseif { $report_format == "warnings-ng" } {
+      set filetype ".xml"
+    } else {
+      set filetype ".txt"
+    }
+
+    if {[dict exists $sigasi_conf REPORT_ABSOLUTE]} {
+      lappend options_list "--absolute"
+    }
+    if {[dict exists $sigasi_conf REPORT_SUPPRESSED]} {
+      lappend options_list "--include-suppressed"
+    }
+    if {[dict exists $sigasi_conf FAIL]} {
+      lappend options_list "--fail-on-[dict get $sigasi_conf FAIL]"
+    }
+
+    lappend options_list "--out=$outfile$filetype"
+
+    puts "sigasi-cli verify $repo_path $options_list "
+    if { [catch { exec -- sigasi-cli verify $repo_path {*}$options_list } ] } {
+      Msg Error "sigasi-cli verify failed - please review $outfile$filetype for issues"
+      exit 1
+    }
+
+    Msg Info "Despite passing there maybe minor code violations caught. See $outfile$filetype"
+    if { $remove_project_file == "yes" } {
+      file delete $repo_path/project.sigasi
+    }
+    exit 0
+  }
+
+  proc sigasi-format {} {
+
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    Msg Info "Formatting VHDL files for project $project_name ..."
+
+    set options_list ""
+    set ignore_list ""
+
+    set sigasi_conf [get_sigasi_conf]
+    Msg Info "sigasi config dict: $sigasi_conf"
+
+    if {[dict exists $sigasi_conf TABS]} {
+      lappend options_list ""
+    } else {
+      lappend options_list "--spaces-for-tabs"
+    }
+    if {[dict exists $sigasi_conf PRESERVE_NEWLINES]} {
+      lappend options_list "--preserve-newlines"
+    }
+    if {[dict exists $sigasi_conf NO_ALIGN]} {
+      lappend options_list "--no-align"
+    }
+
+    lappend options_list "--vhdl-version=[dict get $sigasi_conf VHDL_VERSION]"
+    lappend options_list "--tab-width=[dict get $sigasi_conf TAB_WIDTH]"
+    lappend options_list "--keywords=[dict get $sigasi_conf KEYWORDS]"
+
+    if {[dict exists $sigasi_conf IGNORE_DIR]} {
+      set ignore [dict get $sigasi_conf IGNORE_DIR]
+      foreach dir [split $ignore ,] {
+        lappend ignore_list "$repo_path/[string trim $dir]"
+      }
+    }
+
+    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+    # Msg Debug " debug project_files $project_files"
+
+    foreach source_file $project_files {
+      set skip 0
+      foreach dir $ignore_list {
+        if { [string match $dir* $source_file] } {
+          set skip 1
+        }
+      }
+      if { $skip == 1 } {
+        puts "skipping $source_file due to IGNORE_DIR setting"
+      } else {
+        if {[file extension $source_file] == ".vhd" ||
+            [file extension $source_file] == ".vhdl" } {
+          puts "sigasi-cli format $options_list $source_file"
+          exec -- sigasi-cli format {*}$options_list $source_file
+        }
+      }
+    }
+    exit 0
+  }
+
+  proc sigasi-document {} {
+
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    set remove_project_file [_test_sigasi_project $repo_path]
+    Msg Info "Generating project documentation for $project_name..."
+
+    set options_list ""
+
+    set sigasi_conf [get_sigasi_conf]
+    Msg Info "sigasi config dict: $sigasi_conf"
+
+    if {[dict exists $sigasi_conf LIBRARY_DATABASE]} {
+      set libraries [dict get $sigasi_conf LIBRARY_DATABASE]
+      foreach lib [split $libraries ,] {
+        lappend options_list "--library-database=[string trim $lib]"
+      }
+    }
+
+    lappend options_list "--diagram-node-limit=[dict get $sigasi_conf DIAGRAM_NODE_LIMIT]"
+    lappend options_list "--design-units-per-page=[dict get $sigasi_conf DESIGN_UNITS_PER_PAGE]"
+    lappend options_list "--diagrams=[dict get $sigasi_conf DIAGRAMS]"
+    if {[dict exists $sigasi_conf TOP_LEVEL]} {
+      lappend options_list "--top-level=[dict get $sigasi_conf TOP_LEVEL]"
+    }
+    set outdir "$repo_path/sigasi_doc/$project_name"
+    lappend options_list "--output-directory=$outdir"
+
+    puts "sigasi-cli document $repo_path $options_list "
+    try {
+      set results [exec -- sigasi-cli document $repo_path {*}$options_list 2>@1  ]
+      set status 0
+    } trap CHILDSTATUS {results} {
+      Msg Error "Generation of documentation has failed. Please debug sigasi command outside of HOG"
+      exit 1
+    }
+    Msg Info "Documentation successfully saved to $outdir"
+    if { $remove_project_file == "yes" } {
+      file delete $repo_path/project.sigasi
+    }
+    exit 0
+  }
+}

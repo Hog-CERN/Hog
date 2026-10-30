@@ -1,5 +1,6 @@
 #!/usr/bin/env tclsh
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -107,10 +108,8 @@ cd $repo_path
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Hog describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Git describe set to: $describe"
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
 
@@ -173,7 +172,10 @@ if {[IsXilinx]} {
           set force 0
         }
         Msg Info "Copying synthesised IP $ip to $ip_repo..."
-        HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+        lassign [CheckRemoteIpPath $repo_path $ip_repo] system_ready on_eos on_rclone rclone_config_path
+        if {$system_ready == 1} {
+          HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path $on_eos $on_rclone $rclone_config_path [get_property IP_OUTPUT_DIR $ip] $force
+        }
       }
     }
 
@@ -239,6 +241,8 @@ if {[file exists $user_post_synthesis_file]} {
   Msg Info "Sourcing user post-synthesis file $user_post_synthesis_file"
   source $user_post_synthesis_file
 }
+
+Notify Info "Completed synthesis of $proj_name."
 
 cd $old_path
 Msg Info "All done."

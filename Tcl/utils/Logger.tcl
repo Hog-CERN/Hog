@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -49,6 +50,105 @@ proc dictSafeGet {d args} {
   }
 }
 
+#### DESKTOP NOTIFICATIONS
+
+# Absolute path of the Hog images folder, resolved once when this file is
+# sourced. The procedures below may be called from any working directory, so
+# the path cannot be recomputed from [info script] at call time.
+set HogImagesPath [file normalize [file join [file dirname [info script]] .. .. images]]
+
+# Reentrancy guard. Msg notifies on errors, so Notify must never be able to
+# call back into Msg in a way that would trigger a second notification.
+set NotifyInProgress 0
+
+## @brief Check if desktop notifications have been enabled by the user
+#
+# Notifications are opt-in and controlled by the HOG_NOTIFY environment
+# variable, which may be set to 1, true, yes, on or enabled.
+#
+# @returns 1 if notifications are enabled, 0 otherwise
+#
+proc NotifyEnabled {} {
+  if {![info exists ::env(HOG_NOTIFY)]} {
+    return 0
+  }
+  set value [string tolower [string trim $::env(HOG_NOTIFY)]]
+  return [expr {[lsearch -exact {1 true yes on enabled} $value] >= 0}]
+}
+
+## @brief Map a Hog severity level onto a notification urgency
+#
+# @param[in] level The name of the severity level, as passed to Msg
+#
+# @returns one of "low", "normal" or "critical"
+#
+proc NotifyUrgency {level} {
+  set level [string tolower $level]
+  # Nothing is wrong: status, info and debug
+  if {$level == "status" || $level == "extra_info" || $level == "info" || $level == "debug"} {
+    return "low"
+  } elseif {$level == "error"} {
+    # An error is the only level that stops the build, and most desktops never
+    # auto dismiss a "critical" notification, so it is the only one that gets it
+    return "critical"
+  }
+  # Warnings and critical warnings, and anything unrecognised: worth a look,
+  # but the build is still alive
+  return "normal"
+}
+
+## @brief Send a desktop notification on Linux through the notify-send helper
+#
+# Notifications are opt-in: nothing is sent unless the HOG_NOTIFY environment
+# variable is enabled, see NotifyEnabled.
+#
+# the helper is run detached and silenced: a notification that cannot be delivered,
+# for example over ssh or with no notification daemon running, is dropped
+# without interrupting the build.
+#
+# @param[in] level   The severity level, in any of the forms accepted by Msg
+# @param[in] message The body of the notification
+# @param[in] title   The title of the notification (default "Hog <level>")
+#
+proc Notify {level message {title ""}} {
+  global NotifyInProgress
+
+  if {![NotifyEnabled] || $NotifyInProgress} {
+    return
+  }
+
+  if {$title == ""} {
+    set title "Hog [string toupper $level]"
+  }
+
+  set NotifyInProgress 1
+  set status [catch {
+    if {[auto_execok notify-send] == ""} {
+      Msg Debug "notify-send was not found, skipping notification"
+    } else {
+      set cmd [list notify-send --app-name=Hog --urgency=[NotifyUrgency $level]]
+      set icon [file join $::HogImagesPath hog.png]
+      if {[file exists $icon]} {
+        lappend cmd --icon=$icon
+      }
+      # "--" protects titles and messages that begin with a dash
+      lappend cmd -- $title $message
+      # Vivado and Quartus ship their own glib and put it on LD_LIBRARY_PATH,
+      # Drop it inside an IDE, the same workaround GetCurl uses for curl.
+      if {[info procs IsTclsh] != "" && ![IsTclsh]} {
+        set cmd [linsert $cmd 0 env -u LD_LIBRARY_PATH]
+      }
+      exec {*}$cmd < /dev/null > /dev/null 2> /dev/null &
+    }
+  } err]
+  set NotifyInProgress 0
+
+  # Reporting the failure must not become a failure of its own
+  if {$status} {
+    catch {Msg Debug "Could not send notification: $err"}
+  }
+}
+
 ## @brief The Hog Printout Msg function
 #
 # @param[in] level The severity level (status, info, warning, critical, error, debug)
@@ -88,6 +188,10 @@ proc Msg {level fmsg {title ""}} {
       puts "Hog Error: level $level not defined"
       exit -1
     }
+    # Every branch below exits on an error, so notify the desktop while we still can
+    if {$qlevel == "error"} {
+      Notify $level $msg "Hog $vlevel"
+    }
     if {[IsXilinx]} {
       # Vivado
       if {[string match "-*" $msg]} {
@@ -105,25 +209,19 @@ proc Msg {level fmsg {title ""}} {
       }
     } else {
       # Tcl Shell / Libero
+      if {[info exists ::HOG_API_MODE] && $::HOG_API_MODE} {
+        if {$qlevel == "error"} {
+          puts "\{\"error\": \"$msg\"\}"
+          exit 1
+        }
+        return
+      }
       if {$vlevel != "STATUS"} {
         puts "$vlevel: \[Hog:$title\] $msg"
       } else {
         # temporary solution to avoid removing of leading
         set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-        if {
-          ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
-          ([info exists ::env(HOG_COLOR)] &&
-            ([string match "ENABLED" $::env(HOG_COLOR)] ||
-              ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-            )
-          )||
-          ([dictSafeGet $HogEnvDict terminal logger] > 0) ||
-          ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]))
-        } {
-          puts "LogHelp:$msg"
-        } else {
-          puts $msg
-        }
+        puts "$msg"
       }
       if {$qlevel == "error"} {
         exit 1
@@ -193,6 +291,9 @@ proc Logo {{repo_path .}} {
       Msg CriticalWarning "Logo file: $logo_file not found"
     }
 
+    Msg Status ""
+    Msg Status "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
+    Msg Status ""
 
     # Msg Status "Version: $ver"
     cd $old_path

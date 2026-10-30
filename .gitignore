@@ -1,5 +1,8 @@
 site
 vivado*
+!Tcl/tools/vivado/
+!Tcl/tools/vivado/*
+!Tcl/tools/
 *~
 *.pyc
 .cxl.ip/
@@ -11,3 +14,4 @@ cxl_error.log
 _Alert.txt
 _Log.txt
 ._*
+.vscode

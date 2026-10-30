@@ -1,5 +1,6 @@
 #!/usr/bin/env tclsh
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -78,10 +79,8 @@ set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 cd $tcl_path/../../
 set repo_path "$tcl_path/../.."
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Hog describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Git describe set to: $describe"
 
 set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -177,10 +176,8 @@ if {[file exists $user_post_implementation_file]} {
 # Go to repository path
 cd $tcl_path/../../
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Hog describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Git describe set to: $describe"
 
 set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -318,6 +315,8 @@ if {[file exists $user_post_implementation_file]} {
   Msg Info "Sourcing user post-implementation file $user_post_implementation_file"
   source $user_post_implementation_file
 }
+
+Notify Info "Completed implementation of $proj_name."
 
 cd $old_path
 Msg Info "All done."

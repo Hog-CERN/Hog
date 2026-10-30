@@ -1,5 +1,6 @@
 #!/usr/bin/env tclsh
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,6 +22,32 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 set repo_path [file normalize "$tcl_path/../../"]
+
+
+# write_hw_platform has weird behavior when run in post-bitstream hook;
+# workaround by launching a separate Vivado instance to run it
+proc WriteHwPlatformWorkaround {proj_dir proj_name work_path hw_platform_args} {
+  set proj_file [file normalize "$proj_dir/$proj_name.xpr"]
+  set impl_run [file tail $work_path]
+  set tmp_script "$work_path/hog_write_hw_platform_tmp.tcl"
+
+  set fp [open $tmp_script w]
+  puts $fp "open_project {$proj_file}"
+  puts $fp "open_run $impl_run"
+  puts $fp "write_hw_platform $hw_platform_args"
+  puts $fp "close_project"
+  close $fp
+
+  Msg Info "Launching another Vivado instance to run write_hw_platform for $impl_run..."
+  set ret [catch {exec vivado -mode batch -notrace -source $tmp_script >@ stdout 2>@ stderr} result]
+
+  if {$ret != 0} {
+    Msg Error "write_hw_platform failed in separate Vivado instance:\n$result"
+  } else {
+    Msg Info "write_hw_platform completed successfully in separate Vivado instance for $impl_run."
+  }
+  return $ret
+}
 
 # Import tcllib
 if {[IsLibero] || [IsDiamond]} {
@@ -159,10 +186,8 @@ set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 # Go to repository path
 cd $repo_path
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Hog describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Hog describe set to: $describe"
 
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
@@ -377,10 +402,9 @@ if {[file exists $xml_dir]} {
   file copy -force $xml_dir $dst_xml
 }
 
-# Zynq XSA Export
+# XSA export (Zynq/Versal SoCs, or soft processors such as MicroBlaze/RISC-V)
 if {[IsXilinx]} {
-  # Vivado
-  # automatically export for zynqs (checking via regex)
+  # auto-enable for Zynq/Versal parts, or when an app targets a soft processor
   set export_xsa "NONE"
   set part [get_property part [current_project]]
 
@@ -399,6 +423,23 @@ if {[IsXilinx]} {
       Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. \
       To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
       set export_xsa true
+    } else {
+      # MicroBlaze/RISC-V soft processors are not detectable from the part name.
+      # If an app targets one, export XSA so the ELF can be rebuilt and merged
+      # into the bitstream (same flow as Zynq/Versal software rebuild)
+      set apps [GetAppsFromProps $properties]
+      dict for {app_name app_conf} $apps {
+        if {
+          [dict exists $app_conf "proc"] &&
+          [regexp -nocase {microblaze|risc} [dict get $app_conf "proc"]]
+        } {
+          Msg Info "Soft processor ([dict get $app_conf proc]) detected in app '$app_name', \
+          automatically enabling XSA file creation. \
+          To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
+          set export_xsa true
+          break
+        }
+      }
     }
   }
 
@@ -427,32 +468,95 @@ if {[IsXilinx]} {
           set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
           set_property platform.full_pdi_file $pdi_post_imp [current_project]
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-          write_hw_platform -fixed -force -file "$dst_xsa"
+          WriteHwPlatformWorkaround $proj_dir $proj_name $work_path "-fixed -force -file {$dst_xsa}"
           set wrote_xsa 1
         }
         Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
         If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
         # We leave include bit also for Versal
-        write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+        WriteHwPlatformWorkaround $proj_dir $proj_name $work_path \
+          "-include_bit -fixed -force -file {$dst_xsa}"
         set wrote_xsa 1
       }
     }
 
-    if {[IsVitisClassic] && $wrote_xsa == 1} {
-      Msg Info "XSA file written to $dst_xsa"
-      set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-      Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
-      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-      if {$ret != 0} {
-        Msg Error "xsct (vitis classic) returned an error state."
+    if {$wrote_xsa == 1} {
+      # Determine project type from configuration file
+      set conf_file [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]
+      set is_vitis_classic 0
+      set is_vitis_unified 0
+
+      if {[file exists $conf_file]} {
+        set ide_name_and_ver [GetIDEFromConf $conf_file]
+        set ide_name [string tolower [lindex $ide_name_and_ver 0]]
+        if {[string match "*vitis_classic*" $ide_name] || [string match "*vivado_vitis_classic*" $ide_name]} {
+          set is_vitis_classic 1
+        } elseif {[string match "*vitis_unified*" $ide_name] || [string match "*vivado_vitis_unified*" $ide_name]} {
+          set is_vitis_unified 1
+        }
       }
 
-      # Process ELF files and update bitstream with memory content
-      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
-    }
+      if {$is_vitis_classic || $is_vitis_unified} {
+        Msg Info "XSA file written to $dst_xsa"
 
+        set full_proj_name [file join $group_name $proj_name]
+
+        # Determine command based on project type
+        if {$is_vitis_classic} {
+          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
+          set vitis_type "Vitis Classic"
+          set error_prefix "xsct (vitis classic)"
+        } elseif {$is_vitis_unified} {
+          # Keep the log of the spawned process so that a failure in it can be diagnosed
+          set vitis_log [file normalize "$proj_dir/vitis_unified_build.log"]
+          set vitis_jou [file normalize "$proj_dir/vitis_unified_build.jou"]
+          set vitis_cmd "vivado -mode batch -notrace \
+            -log $vitis_log -journal $vitis_jou \
+            -source $tcl_path/launch.tcl \
+            -tclargs CW -xsa $dst_xsa -vitis_only $full_proj_name"
+          set vitis_type "Vitis Unified"
+          set error_prefix "vivado (for vitis unified)"
+        } else {
+          Msg Error "No Vitis project type found."
+          return
+        }
+
+        Msg Info "Running $vitis_type to create elf file with cmd: $vitis_cmd"
+        set ret [catch {exec -ignorestderr {*}$vitis_cmd >@ stdout} result]
+        if {$ret != 0} {
+          Msg Error "$error_prefix returned an error state: $result"
+        }
+
+        # Copy ELF files from Vitis build output into bin directory
+        # Extract app names preserving original case from hog.conf,
+        # since Vitis creates directories matching the original case
+        set app_names [list]
+        foreach prop_key [dict keys $properties] {
+          if {[regexp {^app:(.+)$} $prop_key -> raw_app_name]} {
+            lappend app_names [string trim $raw_app_name]
+          }
+        }
+        foreach app_name $app_names {
+          if {$is_vitis_unified} {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_unified/$app_name/build/$app_name.elf"]
+          } else {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_classic/$app_name/Release/$app_name.elf"]
+          }
+          set elf_dst [file normalize "$dst_dir/${proj_name}\-${app_name}\-$describe.elf"]
+          if {[file exists $elf_src]} {
+            Msg Info "Copying ELF $elf_src into $elf_dst..."
+            file copy -force $elf_src $elf_dst
+          } else {
+            Msg Warning "ELF file not found: $elf_src"
+          }
+        }
+
+        # Process ELF files and update bitstream with memory content
+        set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
+        GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+      }
+    }
   }
 }
 
@@ -463,6 +567,8 @@ if {[file exists $user_post_bitstream_file]} {
   Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
   source $user_post_bitstream_file
 }
+
+Notify Info "Completed bitstream of $proj_name."
 
 cd $old_path
 Msg Info "All done."

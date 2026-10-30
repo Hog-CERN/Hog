@@ -1,5 +1,3 @@
-
-
 # HDL On Git (Hog)
 
 Coordinating firmware development among many international collaborators is becoming a very widespread problem.
@@ -26,6 +24,9 @@ You can report problems with Hog in using the issues in this repository. Please 
 - Feature Proposal label, if you want to propose a new Hog feature
 - Question label, if you want to ask a question about Hog
 
+## Leave us a star!
+
+If you like Hog, leave us a star on Gitlab.com or on our GitHub mirror ([https://github.com/hog-cern/hog]([https://github.com/hog-cern/hog))
 
 ## License
 

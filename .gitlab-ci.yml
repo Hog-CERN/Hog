@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -65,6 +66,10 @@ test_launch_commands:
     - ./Hog/Do CHECKPROJVER vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo -verbose
+    - ./Hog/Do VERSION vivado/fifo
+    - ./Hog/Do VERSION vivado/fifo -describe
+    - ./Hog/Do VERSION vivado/fifo -verbose
+    - ./Hog/Do VER vivado/fifo
     # - ./Hog/Do CHECKYAML
     # - ./Hog/Do CHECKYAML -verbose
     - ./Hog/Do VIEW vivado/fifo
@@ -81,6 +86,8 @@ test_launch_commands:
     - ./Hog/Do TREE vivado/bd_design -output bd_hierarchy.txt
     - ./Hog/Do SIGASI vivado/fifo
     - ./Hog/Do SIGASI vivado/fifo -verbose
+    - ./Hog/Do VHDL vivado/fifo
+    - ./Hog/Do VHDLLS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo -generate
     - ./Hog/Do IPBUS vivado/fifo -verbose
@@ -102,14 +109,15 @@ test_launch_commands:
 
 launch_github:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Tcl|Other|.\/github)/'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitHub job..."; exit 0; fi
+    - if [[ "$CI_COMMIT_MESSAGE" =~ "skip testfirmware" ]]; then echo "Skipping TestFirmware job due to commit message containing 'skip testfirmware'"; exit 0; fi
+    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|.\/github)($|/)'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitHub job..."; exit 0; fi
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
@@ -119,9 +127,10 @@ launch_github:
     - git submodule update Hog
     - git fetch -p
     - if git branch -r | grep -q "auto/$CI_COMMIT_REF_NAME"; then
-        git push origin --delete auto/$CI_COMMIT_REF_NAME;
+        git checkout auto/$CI_COMMIT_REF_NAME;
+      else
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi;
-    - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
     - while true; do
         git fetch -p;
@@ -145,26 +154,28 @@ launch_github:
     - PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H auto/${CI_COMMIT_REF_NAME} -B develop --json number -q '.[0].number')
     - if [[ "$PR_NR" == "" ]]; then
         echo "There are no open pull requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
-          gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware;
+          gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware -t "Automatic PR with Hog branch $CI_COMMIT_REF_NAME";
           PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H apptainer --json number -q '.[0].number');
       else
         gh pr view $PR_NR;
       fi;
     - sleep 10s
     - gh pr checks $PR_NR --watch
+    - gh pr merge $PR_NR --delete-branch --auto --merge
   interruptible: true
   allow_failure: true
 
 launch_testfirmware:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Tcl|Other|YAML)/'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitLab TestFirmware job..."; exit 0; fi
+    - if [[ "$CI_COMMIT_MESSAGE" =~ "skip testfirmware" ]]; then echo "Skipping TestFirmware job due to commit message containing 'skip testfirmware'"; exit 0; fi
+    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|YAML)(/|$)'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitLab TestFirmware job..."; exit 0; fi
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Clone TestFirmware
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
@@ -172,9 +183,10 @@ launch_testfirmware:
     - git fetch -p
     # Check if auto-generated Hog branch exists
     - if git branch -r | grep -q "auto/$CI_COMMIT_REF_NAME"; then
-        git push origin --delete auto/$CI_COMMIT_REF_NAME;
+        git checkout auto/$CI_COMMIT_REF_NAME;
+      else
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
-    - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
     - git checkout $CI_COMMIT_SHA
     - cd ..
@@ -221,13 +233,15 @@ launch_testfirmware:
         fi;
         sleep 5;
       done
+    - echo "TestFirmware pipeline finished successfully. Merging...;"
+    - glab mr merge $MR_ID -R hog-cern/test/TestFirmware --remove-source-branch -y
   interruptible: true
   allow_failure: true
 
 
 build-doxygen-test:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -247,7 +261,7 @@ build-doxygen-test:
 
 build-doxygen-develop:
   stage: build_doc
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -260,7 +274,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -286,7 +300,7 @@ check_docker:
 
 changelog:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
@@ -317,7 +331,7 @@ changelog:
 
 tagging:
   stage: tag
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -383,7 +397,7 @@ tagging:
 
 shellcheck:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -395,7 +409,7 @@ shellcheck:
 
 yamllint:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -408,7 +422,7 @@ yamllint:
 
 tclint:
   stage: merge_checks
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -420,7 +434,7 @@ tclint:
 
 update_mirrors:
   stage: mirrors
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   script:
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Update Mirror
@@ -430,7 +444,7 @@ update_mirrors:
 
 create_release_note:
   stage: tag
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
@@ -448,7 +462,7 @@ create_release_note:
       fi
 
 # launch_validation:
-#   image: hogcern/hog:develop
+#   image: hogcern/hog:2026.2
 #   only: [develop]
 #   script:
 #     - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header

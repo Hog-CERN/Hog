@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,10 +18,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: hogcern/hog:develop
-
-.vars: &vars
-  GIT_STRATEGY: fetch
+  image: hogcern/hog:2026.2
 
 .only-default: &only-default
   rules:
@@ -59,7 +57,7 @@ check_branch_state:
   <<: *tag-sr
   stage: check
   variables:
-    <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./Hog/Do CIE
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
@@ -103,12 +101,20 @@ check_branch_state:
         exit 1;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
-    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]\" | tclsh`"
     - if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
         echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
         echo $NEW_TAG;
+        exit 1;
       fi;
-    - echo "New tag is $NEW_TAG"
+    - echo "New potential tag is $NEW_TAG"
+    - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV -ci_run)
+    - echo "$cpv"
+    - NUM=$(echo "$cpv" | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
+    - if [ "$NUM" = "0" ]; then
+       NEW_TAG="DO_NOT_TAG";
+       echo "No project was modified, will not add a new tag to the git notes";
+      fi;
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
   interruptible: true
@@ -118,7 +124,6 @@ make_doxygen:
   image: hogcern/hog:doxygen
   stage: generation_and_simulation
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   script:
     - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
@@ -134,7 +139,6 @@ make_doxygen:
 tag_official_version:
   <<: *tag-sr
   variables:
-    <<: *vars
   stage: tag
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
@@ -155,6 +159,10 @@ tag_official_version:
         exit 1;
       }
     - new_tag=${note[2]}
+    - if [ "$new_tag" = "DO_NOT_TAG" ]; then
+        echo "No project was modified in this MR, will not create a tag.";
+        exit 0;
+      fi;
     - if [ -z "$new_tag" ]; then
         echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";
@@ -190,7 +198,6 @@ artifacts_and_release:
       - $CI_COMMIT_TAG =~ /^v.*$/ && ($HOG_OFFICIAL_BIN_EOS_PATH != null || $HOG_OFFICIAL_BIN_PATH != null)
   <<: *tag-sr
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: release
   script:
@@ -249,7 +256,6 @@ archive_binary_files:
       - $CI_COMMIT_TAG =~ /^v.*$/ && ($HOG_OFFICIAL_BIN_EOS_PATH != null || $HOG_OFFICIAL_BIN_PATH != null)
   <<: *tag-hog
   variables:
-    <<: *vars
   needs:
     - job: artifacts_and_release
       artifacts: true
@@ -285,16 +291,24 @@ archive_binary_files:
           fi;
         fi;
         if [ $ENABLE_EOS -eq 1 ]; then
-          until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-            echo Retrying;
-            sleep 2;
-          done;
           echo -n "Variable EOS_MGM_URL is ";
           if [ -z "$EOS_MGM_URL" ]; then
             echo "NOT defined. This variable is essential for EOS to work properly. Hog-CI will use the default value of root://eosuser.cern.ch";
             EOS_MGM_URL="root://eosuser.cern.ch";
           else
             echo "defined.";
+          fi;
+          if command -v kinit &> /dev/null; then
+            KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+            until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+              KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+              if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                export ENABLE_EOS=0;
+                break;
+              fi;
+              echo "Retrying"; sleep 2;
+            done;
           fi;
         fi;
       else
@@ -320,8 +334,13 @@ archive_binary_files:
     - if [ "${HOG_USE_DOXYGEN}" = "1" ] && [ "${BIN_PATH}" ]; then
         if [ -d Doc/html ]; then
           if [ $ON_EOS -eq 1 ] && [ $ENABLE_EOS -eq 1 ]; then
-            eos mkdir -p ${BIN_PATH}/Doc;
-            xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+            if ls ${BIN_PATH} &> /dev/null; then
+              mkdir -p ${BIN_PATH}/Doc;
+              cp -r Doc/html/* ${BIN_PATH}/Doc;
+            else
+              eos mkdir -p ${BIN_PATH}/Doc;
+              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+            fi;
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
             rclone copy Doc/html ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
@@ -338,8 +357,13 @@ archive_binary_files:
         if [ -d bin ]; then
           echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
           if [ $ENABLE_EOS -eq 1 ] && [ $ON_EOS -eq 1 ]; then
-            eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
-            xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+            if ls ${BIN_PATH} &> /dev/null; then
+              mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
+              cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
+            else
+              eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
+              xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+            fi;
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
             rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
@@ -370,7 +394,6 @@ create_badge:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-sr
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:

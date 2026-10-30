@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -37,7 +38,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: hogcern/hog:develop
+  image: hogcern/hog:2026.2
 
 .vars: &vars
   GIT_STRATEGY: fetch
@@ -90,16 +91,64 @@
         else
           export SIMSETS="";
         fi;
+        export ENABLE_EOS=1;
+        if [ -z "${EOS_PASSWORD}" ]; then
+          if [ -z "${HOG_PASSWORD}" ]; then
+            export ENABLE_EOS=0;
+          else
+            EOS_PASSWORD=${HOG_PASSWORD};
+          fi;
+        fi;
+        if [ -z "${EOS_USER}" ]; then
+          if [ -z "${HOG_USER}" ]; then
+            export ENABLE_EOS=0;
+          else
+            EOS_USER=${HOG_USER};
+          fi;
+        fi;
+        if [ -z "${HOG_IP_PATH}" ]; then
+          if [ -z "${HOG_IP_EOS_PATH}" ]; then
+            echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
+          else
+            echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+          fi;
+        else
+          echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
+          if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
+            if [ "$ENABLE_EOS" -eq 1 ]; then
+              if command -v kinit &> /dev/null; then
+                KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+                  KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+                  if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                    echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                    export ENABLE_EOS=0;
+                    break;
+                  fi;
+                  echo "Retrying"; sleep 2;
+                done;
+              else
+                echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
+                export ENABLE_EOS=0;
+              fi;
+            fi;
+          else
+            export ENABLE_EOS=0;
+          fi;
+        fi;
         SIM_CMD="$APP_CMD ./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
         echo $SIM_CMD;
         $(echo $SIM_CMD);
       fi;
   artifacts:
+    when: always
     name: simulation_files
     paths:
       - Projects/$PROJECT_NAME/*.sim
       - Projects/$PROJECT_NAME/ghdl
+      - Projects/$PROJECT_NAME/vitis_unified
       - SkippedProjects/$PROJECT_NAME
+      - "${HOG_ADDITIONAL_ARTIFACT_PATH:-.hog-no-additional-artifacts}"
     expire_in: 30 day
   allow_failure: true
   interruptible: true
@@ -143,17 +192,17 @@
           export HOG_NJOBS=4;
           echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
         fi;
-        ENABLE_EOS=1;
+        export ENABLE_EOS=1;
         if [ -z "${EOS_PASSWORD}" ]; then
           if [ -z "${HOG_PASSWORD}" ]; then
-            ENABLE_EOS=0;
+            export ENABLE_EOS=0;
           else
             EOS_PASSWORD=${HOG_PASSWORD};
           fi;
         fi;
         if [ -z "${EOS_USER}" ]; then
           if [ -z "${HOG_USER}" ]; then
-            ENABLE_EOS=0;
+            export ENABLE_EOS=0;
           else
             EOS_USER=${HOG_USER};
           fi;
@@ -174,13 +223,23 @@
           if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
             if [ "$ENABLE_EOS" -eq 1 ]; then
               if command -v kinit &> /dev/null; then
-                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do echo "Retrying"; sleep 2; done;
+                KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+                  KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+                  if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                    echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                    export ENABLE_EOS=0;
+                    break;
+                  fi;
+                  echo "Retrying"; sleep 2;
+                done;
               else
                 echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
+                export ENABLE_EOS=0;
               fi;
             fi;
           else
-            ENABLE_EOS=0;
+            export ENABLE_EOS=0;
           fi;
         fi;
         if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
@@ -261,7 +320,7 @@
           if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1; then
+          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
             echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
             if [ -e DebugProjects ]; then
               echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
@@ -285,7 +344,7 @@
       - bin
       - "*.log"
       - DCPs
-      - DebugProjects
+      - "${HOG_ADDITIONAL_ARTIFACT_PATH:-.hog-no-additional-artifacts}"
     expire_in: 30 day
   interruptible: true
 
@@ -375,7 +434,7 @@ check-timing:
         PRJ_NAME="${PRJ_DIR%.*}";
         PRJ_NAME="${PRJ_NAME%-*}";
         PRJ_NAME_BASE=$(basename $PRJ_NAME);
-        if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+        if [ -f "$PRJ_DIR/timing_error.txt" ] || ls "$PRJ_DIR"/vitis_hls/*/timing_error.txt "$PRJ_DIR"/*/timing_error.txt >/dev/null 2>&1; then
           FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
         fi;
       done;
@@ -389,3 +448,82 @@ check-timing:
         echo "All projects met timing. All good!";
       fi;
   allow_failure: true
+
+
+.sigasi_lint: &sigasi_lint
+  <<: *only-default
+  <<: *tag-hog
+  stage: user_pre
+  variables:
+    <<: *vars
+  script:
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+    - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+        echo "CI disabled for $PROJECT_NAME";
+      else
+        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+          echo "Hog-CI(info) - Hog sigasi-lint will be run in verbose mode.";
+        fi;
+        SIM_CMD="$APP_CMD ./Hog/Do sigasi-lint $PROJECT_NAME ";
+        echo $SIM_CMD;
+        $(echo $SIM_CMD);
+      fi;
+  artifacts:
+    name: sigasi_lint_report
+    paths:
+      - sigasi_lint/$PROJECT_NAME
+    expire_in: 30 day
+  interruptible: true
+
+.sigasi_doc: &sigasi_doc
+  <<: *only-default
+  <<: *tag-hog
+  stage: user_proj
+  variables:
+    <<: *vars
+  script:
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+    - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+        echo "CI disabled for $PROJECT_NAME";
+      else
+        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+          echo "Hog-CI(info) - Hog sigasi-doc will be run in verbose mode.";
+        fi;
+        SIM_CMD="$APP_CMD ./Hog/Do sigasi-doc $PROJECT_NAME ";
+        echo $SIM_CMD;
+        $(echo $SIM_CMD);
+      fi;
+  artifacts:
+    name: sigasi_docs
+    paths:
+      - sigasi_doc/$PROJECT_NAME
+    expire_in: 30 day
+  interruptible: true

@@ -2888,7 +2888,9 @@ proc GenericToSimulatorString {prop_dict target} {
 #
 #  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
 #
-#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl, pre-rtl.tcl, and post-rtl.tcl files
+#  @return[in] the paths of hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl,
+#              pre-rtl.tcl and post-rtl.tcl,
+#              followed by path patterns for all project pre/post hooks
 proc GetConfFiles {proj_dir} {
   Msg Debug "GetConfFiles called with proj_dir=$proj_dir"
   if {![file isdirectory $proj_dir]} {
@@ -2902,7 +2904,10 @@ proc GetConfFiles {proj_dir} {
   set pre_rtl [file normalize $proj_dir/pre-rtl.tcl]
   set post_rtl [file normalize $proj_dir/post-rtl.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl $post_rtl]
+  # Include all project hooks in version tracking, including deleted hooks.
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl $post_rtl \
+              [file normalize $proj_dir/pre-*.tcl] \
+              [file normalize $proj_dir/post-*.tcl]]
 }
 
 

@@ -1,12 +1,12 @@
 
 # This will be used to maintain project context throughout the flow
 # Tools can query this instead of having to pass around variabls
-# basically just a wrapper around a dict, but will be used to 
+# basically just a wrapper around a dict, but will be used to
 # store and retrieve values in a more structured way.
 #
-# if we wanted to play nice with non tcl tools, maybe we implement faux "typing" 
+# if we wanted to play nice with non tcl tools, maybe we implement faux "typing"
 # by requiring types when adding elements to the context
-# for example: 
+# for example:
 # Context::Set String LaunchSettings project_name "MyProject"
 # Context::Set List   LaunchSettings sources [list "file1.v" "file2.v"]
 #
@@ -20,7 +20,7 @@
 #  }
 # }
 #
-# this would let us 'easily' export/import json for communication with other tools 
+# this would let us 'easily' export/import json for communication with other tools
 
 
 namespace eval Context {
@@ -162,7 +162,7 @@ namespace eval Context {
 
     return $keys
   }
-  
+
   proc SaveToFile {filename {overwrite false}} {
     variable _ctx
 
@@ -195,8 +195,8 @@ namespace eval Context {
   }
 
 
-  proc _isDict {value} { 
-    return [expr {![catch {dict size $value}]}] 
+  proc _isDict {value} {
+    return [expr {![catch {dict size $value}]}]
   }
 
   proc _ctxValid {} {

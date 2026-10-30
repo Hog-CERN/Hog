@@ -36,7 +36,7 @@ namespace eval Tools::Vivado {
     # Each tool should define how it passes context from tclsh to itself
     # I think most can just pass the entire context dict as a tclarg, but
     # something like vitis_unified will probably need to manpulate it to
-    # pass to python env. 
+    # pass to python env.
 
     set script [Context::Get launch_script]
     set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "

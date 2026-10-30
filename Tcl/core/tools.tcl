@@ -63,59 +63,6 @@ namespace eval Tools {
   }
 
 
-<<<<<<< HEAD
-  proc Launch {tool} {
-    set tools [namespace children ::Tools]
-    set tool_ns ""
-    foreach ns $tools {
-      if {[string tolower [namespace tail $ns]] eq [string tolower $tool]} {
-        set tool_ns $ns
-        break
-      }
-    }
-    if {[catch {${tool_ns}::Launch} err]} {
-      Msg Error "Failed to launch tool '$tool': $err"
-    }
-  }
-
-  proc Init {tools_dirs} {
-    foreach dir $tools_dirs {
-      Msg Debug "Loading tools from $dir"
-      if {![file isdirectory $dir]} { continue }
-      foreach f [lsort [glob -nocomplain -directory $dir *.tcl]] {
-        if {[catch {namespace eval :: [list source $f]} err]} {
-          Msg Warning "failed to source [file tail $f]: $err"
-          continue
-        }
-      }
-    }
-
-
-    set _required_procs {IsActive Launch Initialize}
-    foreach ns [namespace children ::Tools] {
-      if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {
-        Msg Warning "[namespace tail $ns] does not define a Manifest, skipping"
-        namespace delete $ns
-        continue
-      }
-      #TODO: if manifest does exist, should probably check for a set of required fields
-
-      set missing {}
-      foreach required $_required_procs {
-        if {[info commands ${ns}::${required}] eq ""} {
-          lappend missing $required
-        }
-      }
-      if {[llength $missing] > 0} {
-        Msg Warning "[namespace tail $ns] is missing required procs: [join $missing {, }], skipping"
-        namespace delete $ns
-        continue
-      }
-
-      InjectCommonProcs $ns
-    }
-
-=======
   # Throws on failure (errorcode {HOG_TOOL_FAILED <exit>}) so a failed IDE child
   # can't surface as a success. The top-level entry maps that code to its own
   # exit status - see launch.tcl.
@@ -284,15 +231,12 @@ namespace eval Tools {
   }
 
   proc Init {} {
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
     set active [detectActiveTool]
     if {$active ne ""} {
       ::ActiveTool::Set $active
     }
   }
 
-<<<<<<< HEAD
-=======
   proc GetToolForProject {project top_path} {
     set conf [file join $top_path $project hog.conf]
     if {![file exists $conf]} {
@@ -314,20 +258,11 @@ namespace eval Tools {
     return ""
   }
 
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
   # we can inject procs into each tool's namespace to provide some common functionality
   # let's use use calls like Tools::Vivado::GetManifest and not have to define these for each tool
   proc InjectCommonProcs {tool_ns} {
     namespace eval $tool_ns {
 
-<<<<<<< HEAD
-      proc Supports {feature} {
-        variable Manifest
-        if {[dict exists $Manifest features $feature]} {
-          return 1
-        }
-        return 0
-=======
       if {[info commands Launch] eq ""} {
         proc Launch {} {
           ActiveTool::Set [namespace current]
@@ -355,7 +290,6 @@ namespace eval Tools {
       # RegisterStage <name> {spec} {body} also defines it.
       proc RegisterStage {name spec args} {
         Tools::RegisterStage [namespace current] $name $spec {*}$args
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
       }
 
       proc GetManifest {} {
@@ -368,14 +302,9 @@ namespace eval Tools {
       }
 
       proc _printTool {} {
-<<<<<<< HEAD
-        variable Manifest
-        set injected {Has Supports GetManifest _printTool}
-=======
         #TODO: Clean this up probably
         variable Manifest
         set injected {Has GetManifest _printTool}
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
         set tool_name [namespace tail [namespace current]]
 
         set methods {}
@@ -396,22 +325,11 @@ namespace eval Tools {
 
 
 
-<<<<<<< HEAD
-
-# Namespace wrapper around the current tool, should use this instead
-# of tool specific calls in most cases:
-namespace eval ActiveTool {
-  variable tool "tlcsh"
-  variable _fixed_procs {Set CurrentTool}
-  variable _skip_procs {}
-
-=======
 # Which tool's process we are in - "tclsh" at the top level, or a tool namespace
 # once an IDE child has booted (or an in-process tool has flipped itself active).
 # Identity only; stage resolution goes through the command tree
 namespace eval ActiveTool {
   variable tool "tclsh"
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
 
   proc CurrentTool {} {
     variable tool
@@ -420,43 +338,6 @@ namespace eval ActiveTool {
 
   proc Set {tool_ns} {
     variable tool
-<<<<<<< HEAD
-    variable _fixed_procs
-    variable _skip_procs
-
-    foreach cmd [info commands ::ActiveTool::*] {
-      set name [namespace tail $cmd]
-      if {$name ni $_fixed_procs} {
-        rename ::ActiveTool::$name ""
-      }
-    }
-
-    if {$tool_ns eq ""} {
-      return
-    }
-
-    set tool $tool_ns
-
-    foreach tool_proc [info commands ${tool_ns}::*] {
-      set name [namespace tail $tool_proc]
-
-      if {[string index $name 0] eq "_"} continue
-      if {$name in $_skip_procs}   continue
-      if {$name in $_fixed_procs} continue
-
-      # we can generate a wrapper around the actual call to add logging or
-      # other functionality without modifying the tool's code
-      set proc_body [string map [list @_TOOL $tool_ns @_PROC_NAME $name] {
-        Msg Debug "Calling @_TOOL::@_PROC_NAME with args: $args"
-        set result [@_TOOL::@_PROC_NAME {*}$args]
-        Msg Debug "Result from @_TOOL::@_PROC_NAME $result"
-        return \$result
-      }]
-
-      proc ::ActiveTool::$name {args} $proc_body
-    }
-=======
     if {$tool_ns ne ""} { set tool $tool_ns }
->>>>>>> e119bfd499ddc37f24a856662bb2b363f0a7194f
   }
 }

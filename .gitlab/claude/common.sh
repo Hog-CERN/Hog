@@ -31,6 +31,10 @@ claude_install() {
 # GITHUB_TOKEN, CERN_PUSH_TOKEN, CI_JOB_TOKEN, ...) are never visible to the agent.
 # Project/local settings and .mcp.json are ignored so the checked-out code (which may come
 # from an untrusted MR) cannot register hooks, permissions or MCP servers.
+# File access: Read/Grep/Glob are available but deliberately NOT pre-approved with
+# --allowedTools, so in non-interactive mode they only work inside the working directory and
+# the directories passed with --add-dir; anything else (runner temp dirs holding git
+# credentials, other users' files, ...) is denied.
 run_claude() {
   env -i \
     PATH="$PATH" HOME="$HOME" LANG=C.UTF-8 TERM=dumb \
@@ -45,7 +49,6 @@ run_claude() {
     --strict-mcp-config \
     --no-session-persistence \
     --tools "Read,Grep,Glob" \
-    --allowedTools "Read,Grep,Glob" \
     --output-format json \
     "$@" </dev/null
 }
@@ -83,10 +86,20 @@ assert_no_secrets() {
 ## Call it after the last git fetch.
 scrub_git_credentials() {
   local key
+  if is_dry_run; then
+    echo "[dry run] not touching the git configuration"
+    return 0
+  fi
   [ -n "${CI_PROJECT_URL:-}" ] && git remote set-url origin "$CI_PROJECT_URL.git"
   for key in $(git config --local --name-only --get-regexp '^(http\..*extraheader|credential\..*|include\.path)$' || true); do
     git config --local --unset-all "$key" || true
   done
+}
+
+## CLAUDE_DRY_RUN=1: read from GitLab but never write to it, and leave the local git
+## configuration alone. Handy to try the scripts from a developer checkout.
+is_dry_run() {
+  [ "${CLAUDE_DRY_RUN:-0}" = "1" ]
 }
 
 ## GitLab API call with the Hog bot token.
@@ -94,6 +107,12 @@ scrub_git_credentials() {
 gl_api() {
   local method="$1" path="$2" body="${3:-}"
   local args=(-sf -X "$method" -H "PRIVATE-TOKEN: $HOG_PUSH_TOKEN")
+  if [ "$method" != "GET" ] && is_dry_run; then
+    echo "[dry run] $method $path" >&2
+    [ -n "$body" ] && jq . "$body" >&2
+    echo '{}'
+    return 0
+  fi
   if [ -n "$body" ]; then
     args+=(-H "Content-Type: application/json" --data "@$body")
   fi

@@ -17,9 +17,10 @@ do when updating, and which bugs are fixed.
 - For patch releases with few changes, one short paragraph is enough.
 - For feature releases use a bullet list grouped by theme with a bold lead-in
   (`- **Vitis HLS**: ...`), most important first, and end with a `- **Fixes**: ...` bullet.
-- If anything requires action from users when updating (renamed/removed options, new
-  required CI variables, docker image changes, changed defaults), add a
-  `### Upgrade notes` section after the list. Omit it otherwise.
+- Actions users must take when updating (renamed/removed options, new required CI
+  variables, docker image changes, changed defaults) go in the separate `upgrade_notes`
+  output field, never in the notes themselves: the job renders them as an
+  `### Upgrade notes` section.
 - Merge commit noise, CI-of-Hog-itself changes, linting, typo fixes and reverted work
   should be left out unless they matter to users.
 - Do not invent features: every statement must be backed by the commits, the MR

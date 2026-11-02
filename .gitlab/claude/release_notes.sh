@@ -131,7 +131,7 @@ Return structured output:
   version; empty string if none."
 
 set +e
-run_claude -p "$PROMPT" \
+run_claude -p "$PROMPT" --add-dir "$WORK" \
   --json-schema "$SCHEMA" \
   --max-turns "${CLAUDE_RELEASE_MAX_TURNS:-40}" \
   --max-budget-usd "${CLAUDE_RELEASE_MAX_BUDGET:-3}" \

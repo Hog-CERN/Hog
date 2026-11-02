@@ -131,7 +131,7 @@ Return structured output:
   the indentation) in suggestion; otherwise omit suggestion."
 
 set +e
-run_claude -p "$PROMPT" \
+run_claude -p "$PROMPT" --add-dir "$WORK" \
   --json-schema "$REVIEW_SCHEMA" \
   --max-turns "${CLAUDE_REVIEW_MAX_TURNS:-40}" \
   --max-budget-usd "${CLAUDE_REVIEW_MAX_BUDGET:-3}" \
@@ -195,10 +195,15 @@ while IFS= read -r f; do
           }
         }' >"$WORK/discussion.json"
     rm -f "$WORK/resp.json"
-    code=$(curl -s -o "$WORK/resp.json" -w '%{http_code}' -X POST \
-      -H "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" -H "Content-Type: application/json" \
-      --data "@$WORK/discussion.json" \
-      "$CI_API_V4_URL$MR_API/discussions") || code="curl error"
+    if is_dry_run; then
+      echo "[dry run] inline comment on $file:$line:" && jq -r .body "$WORK/discussion.json"
+      code=201
+    else
+      code=$(curl -s -o "$WORK/resp.json" -w '%{http_code}' -X POST \
+        -H "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" -H "Content-Type: application/json" \
+        --data "@$WORK/discussion.json" \
+        "$CI_API_V4_URL$MR_API/discussions") || code="curl error"
+    fi
   fi
 
   if [ "$code" = "201" ]; then

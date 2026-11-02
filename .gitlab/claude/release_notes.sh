@@ -23,7 +23,7 @@
 # The original description (MR description + FEATURE list from create_release_note) is kept
 # in a collapsed section. Re-running the job regenerates the notes and keeps the original.
 #
-# Inputs (CI variables): CI_COMMIT_TAG, HOG_PUSH_TOKEN, ANTHROPIC_API_KEY or
+# Inputs (CI variables): CI_COMMIT_TAG, CLAUDE_GITLAB_TOKEN (or HOG_PUSH_TOKEN), ANTHROPIC_API_KEY or
 # CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_MODEL, CLAUDE_RELEASE_MAX_TURNS, CLAUDE_RELEASE_MAX_BUDGET.
 
 set -euo pipefail

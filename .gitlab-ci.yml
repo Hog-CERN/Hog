@@ -470,6 +470,9 @@ create_release_note:
 #       fi;'
 #   stage: tag
 
+# Claude jobs. Secrets: CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; or ANTHROPIC_API_KEY)
+# and CLAUDE_GITLAB_TOKEN are scoped to the claude-* environments, which are protected, so only
+# allowed users' pipelines can run these jobs.
 .claude:
   image: node:24-alpine3.21
   variables:
@@ -510,6 +513,9 @@ claude-review:
 claude-release-notes:
   extends: .claude
   stage: tag
+  environment:
+    name: claude-release                 # protected environment: allow the tagging bot (hog_user) and maintainers
+    deployment_tier: other
   rules:
     - if: '$CI_COMMIT_TAG =~ /^(v|Hog).*$/'
       when: always                       # also runs if create_release_note failed: it then creates the release

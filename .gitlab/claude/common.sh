@@ -20,6 +20,21 @@
 CLAUDE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export CLAUDE_DIR
 
+# GitLab token used to read the MR/release and post the results. Prefer CLAUDE_GITLAB_TOKEN,
+# a low-privilege project access token scoped to the claude-* environments (Reporter for
+# claude-review, Developer for claude-release); fall back to HOG_PUSH_TOKEN until it exists.
+GL_TOKEN="${CLAUDE_GITLAB_TOKEN:-${HOG_PUSH_TOKEN:-}}"
+if [ -z "$GL_TOKEN" ]; then
+  echo "Neither CLAUDE_GITLAB_TOKEN nor HOG_PUSH_TOKEN is set" >&2
+  exit 1
+fi
+if [ -n "${CLAUDE_GITLAB_TOKEN:-}" ]; then
+  # Not needed by this job: keep it out of every child process.
+  unset HOG_PUSH_TOKEN
+else
+  echo "Warning: CLAUDE_GITLAB_TOKEN is not set, using HOG_PUSH_TOKEN" >&2
+fi
+
 ## Install a pinned Claude Code (node image; system packages are installed by the CI job).
 claude_install() {
   npm install -g --no-fund --no-audit "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION:-latest}" >/dev/null
@@ -27,8 +42,8 @@ claude_install() {
 }
 
 ## Run claude with a scrubbed environment.
-# Only the variables Claude needs are passed through, so CI secrets (HOG_PUSH_TOKEN,
-# GITHUB_TOKEN, CERN_PUSH_TOKEN, CI_JOB_TOKEN, ...) are never visible to the agent.
+# Only the variables Claude needs are passed through, so CI secrets (CLAUDE_GITLAB_TOKEN,
+# HOG_PUSH_TOKEN, GITHUB_TOKEN, CERN_PUSH_TOKEN, CI_JOB_TOKEN, ...) are never visible to it.
 # Project/local settings and .mcp.json are ignored so the checked-out code (which may come
 # from an untrusted MR) cannot register hooks, permissions or MCP servers.
 # File access: Read/Grep/Glob are available but deliberately NOT pre-approved with
@@ -71,7 +86,11 @@ claude_extract() {
 ## written by the agent is published on GitLab.
 assert_no_secrets() {
   local file="$1" name val
-  for name in HOG_PUSH_TOKEN CI_JOB_TOKEN GITHUB_TOKEN CERN_PUSH_TOKEN ANTHROPIC_API_KEY \
+  [ "${#GL_TOKEN}" -ge 8 ] && grep -qF -- "$GL_TOKEN" "$file" && {
+    echo "Refusing to publish: the agent output contains the GitLab token" >&2
+    return 1
+  }
+  for name in CLAUDE_GITLAB_TOKEN HOG_PUSH_TOKEN CI_JOB_TOKEN GITHUB_TOKEN CERN_PUSH_TOKEN ANTHROPIC_API_KEY \
     CLAUDE_CODE_OAUTH_TOKEN CI_REGISTRY_PASSWORD; do
     val="${!name:-}"
     if [ "${#val}" -ge 8 ] && grep -qF -- "$val" "$file"; then
@@ -102,11 +121,11 @@ is_dry_run() {
   [ "${CLAUDE_DRY_RUN:-0}" = "1" ]
 }
 
-## GitLab API call with the Hog bot token.
+## GitLab API call with $GL_TOKEN.
 # $1 method, $2 path (relative to $CI_API_V4_URL), $3 optional JSON body file
 gl_api() {
   local method="$1" path="$2" body="${3:-}"
-  local args=(-sf -X "$method" -H "PRIVATE-TOKEN: $HOG_PUSH_TOKEN")
+  local args=(-sf -X "$method" -H "PRIVATE-TOKEN: $GL_TOKEN")
   if [ "$method" != "GET" ] && is_dry_run; then
     echo "[dry run] $method $path" >&2
     [ -n "$body" ] && jq . "$body" >&2

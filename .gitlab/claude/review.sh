@@ -21,7 +21,7 @@
 #   skipping lines that already have an open Claude finding from a previous run.
 # - Keeps a single summary note on the MR, updated in place on every run.
 #
-# Inputs (CI variables): HOG_PUSH_TOKEN, ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN,
+# Inputs (CI variables): CLAUDE_GITLAB_TOKEN (or HOG_PUSH_TOKEN), ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN,
 # CLAUDE_MODEL, CLAUDE_REVIEW_MAX_INLINE, CLAUDE_REVIEW_MAX_TURNS, CLAUDE_REVIEW_MAX_BUDGET.
 
 set -euo pipefail
@@ -200,7 +200,7 @@ while IFS= read -r f; do
       code=201
     else
       code=$(curl -s -o "$WORK/resp.json" -w '%{http_code}' -X POST \
-        -H "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" -H "Content-Type: application/json" \
+        -H "PRIVATE-TOKEN: $GL_TOKEN" -H "Content-Type: application/json" \
         --data "@$WORK/discussion.json" \
         "$CI_API_V4_URL$MR_API/discussions") || code="curl error"
     fi

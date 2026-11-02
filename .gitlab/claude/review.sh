@@ -139,7 +139,7 @@ run_claude -p "$PROMPT" --add-dir "$WORK" \
 rc=$?
 set -e
 echo "claude exit code: $rc"
-cp "$WORK/claude-out.json" "$OUT/claude-out.json"
+assert_no_secrets "$WORK/claude-out.json" && cp "$WORK/claude-out.json" "$OUT/claude-out.json"
 claude_extract "$WORK/claude-out.json" "$OUT/review.json"
 jq -e '(.summary | type == "string" and length > 0) and (.findings | type == "array")' \
   "$OUT/review.json" >/dev/null || { echo "Malformed review"; exit 1; }

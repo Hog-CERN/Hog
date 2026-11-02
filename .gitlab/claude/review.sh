@@ -42,12 +42,26 @@ REVIEWED=$(git rev-parse HEAD)
 SHORT=$(git rev-parse --short HEAD)
 
 # ---------------------------------------------------------------- diff
-git diff "$CI_MERGE_REQUEST_DIFF_BASE_SHA...HEAD" >"$WORK/mr.diff"
+git diff "$CI_MERGE_REQUEST_DIFF_BASE_SHA...HEAD" >"$WORK/raw.diff"
 git diff --stat=160 "$CI_MERGE_REQUEST_DIFF_BASE_SHA...HEAD" >"$WORK/mr.stat"
-if [ ! -s "$WORK/mr.diff" ]; then
+if [ ! -s "$WORK/raw.diff" ]; then
   echo "Empty diff, nothing to review"
   exit 0
 fi
+# Prefix every added/context line with its line number in the NEW file, so the model reports
+# real file line numbers (instead of line numbers inside the diff file), and record the added
+# lines: only those can carry an inline comment.
+awk -v added="$WORK/added.tsv" '
+  /^diff --git / { hunk = 0; file = ""; print; next }
+  !hunk && /^\+\+\+ / { file = substr($0, 5); sub(/^b\//, "", file); print; next }
+  /^@@ / { hunk = 1; match($0, /\+[0-9]+/); n = substr($0, RSTART + 1, RLENGTH - 1) + 0; print; next }
+  !hunk { print; next }
+  /^\+/ { printf "%6d %s\n", n, $0; print file "\t" n > added; n++; next }
+  /^ /  { printf "%6d %s\n", n, $0; n++; next }
+  /^-/  { printf "%6s %s\n", "", $0; next }
+  { print }
+' "$WORK/raw.diff" >"$WORK/mr.diff"
+touch "$WORK/added.tsv"
 
 # ---------------------------------------------------------------- previous runs
 BOT_ID=$(gl_api GET /user | jq -r .id)
@@ -103,6 +117,9 @@ ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-develop}. The repository is checked out a
 
 Inputs:
 - $WORK/mr.diff: the unified diff of the MR against its base (read it in chunks if large).
+  Every added (+) and context line is prefixed with its line number in the NEW version of the
+  file; removed (-) lines have no number. Use these numbers for findings, never the line
+  numbers of mr.diff itself.
 - $WORK/mr.stat: the diffstat.
 - The full repository, to understand the context of each change (callers, definitions,
   other uses of a changed procedure, CI templates that call a changed script).
@@ -124,8 +141,8 @@ Return structured output:
 - summary: GitLab Markdown, at most ~15 lines: what the MR does, the main risks, and anything
   that cannot be attached to a single changed line (design, missing tests/docs, removed code).
 - findings: at most 25, most severe first. file is the path relative to the repository root.
-  line is a 1-based line number in the NEW version of the file and MUST be a line that this
-  diff adds or modifies. body is self-contained GitLab Markdown without a severity prefix.
+  line is the number printed in front of a + line of mr.diff for that file (the line number
+  in the NEW version of the file); it MUST be an added (+) line. body is self-contained GitLab Markdown without a severity prefix.
   Optional: if the fix is a direct replacement of new-file lines line..end_line (end_line
   defaults to line, at most 10 lines), put the exact replacement text (no code fences, keep
   the indentation) in suggestion; otherwise omit suggestion."
@@ -178,7 +195,9 @@ while IFS= read -r f; do
   fi
 
   code="not attempted (inline limit)"
-  if [ "$n" -le "$INLINE_LIMIT" ]; then
+  if ! grep -qxF "$(printf '%s\t%s' "$file" "$line")" "$WORK/added.tsv"; then
+    code="not an added line of this diff"
+  elif [ "$n" -le "$INLINE_LIMIT" ]; then
     jq -n --argjson f "$f" --arg mark "$FINDING_MARK" \
       --arg base "$BASE" --arg start "$START" --arg head "$REVIEWED" '
       ($f.end_line // $f.line) as $last

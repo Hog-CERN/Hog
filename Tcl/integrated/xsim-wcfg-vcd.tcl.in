@@ -40,11 +40,19 @@ namespace eval WcfgVcd {
 
 set vcd_file "@VCD_FILE@"
 set runtime "@RUNTIME@"
+set user_custom_do "@USER_CUSTOM_DO@"
 restart
 set vcd_objects [WcfgVcd::selected_objects]
 puts "Recording [llength $vcd_objects] WCFG-selected objects to $vcd_file"
 open_vcd $vcd_file
 log_vcd $vcd_objects
+
+# The wrapper owns the run. A sourced project custom-Do may set up forces or
+# checks, but must not run or quit XSim.
+if {$user_custom_do ne ""} {
+  puts "Sourcing project custom-Do before VCD capture run: $user_custom_do"
+  source $user_custom_do
+}
 run $runtime
 close_vcd
 quit

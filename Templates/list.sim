@@ -32,7 +32,12 @@ XSIM.ELABORATE.RANGECHECK = False
 HOG_SIMPASS_STR=">> Sim SUCCESS:"
 HOG_SILENT_SIM=1
 # Read the loaded WCFG and write only its selected signals to <simulation-set>.vcd.
+# Hog owns the run; an existing CUSTOM_DO is sourced only for setup and must not run or quit.
 # HOG_XSIM_WCFG_VCD=1
+# Alternatively, add wcfg_vcd.tcl and custom_do_wcfg_vcd.tcl to this simulation
+# set, then set XSIM.SIMULATE.CUSTOM_DO=custom_do_wcfg_vcd.tcl explicitly.
+# Optional user hooks are Top/<project>/pre-simulation.tcl and post-simulation.tcl.
+# Per-simulation-set hooks use pre-simulation_<simset>.tcl and post-simulation_<simset>.tcl.
 [generics]
 # Simulation generics
 test_generic_1=1

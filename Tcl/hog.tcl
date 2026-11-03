@@ -6503,14 +6503,8 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
 
         Msg Info "Creating simulation scripts for $s..."
-        if {[file exists $repo_path/Top/$project_name/pre-simulation.tcl]} {
-          Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
-          source $repo_path/Top/$project_name/pre-simulation.tcl
-        }
-        if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
-          Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
-        }
+        set simset $s
+        source $repo_path/Hog/Tcl/integrated/pre-simulation.tcl
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav
         set sim_output_logfile $sim_dir/xsim/simulate.log
@@ -6524,6 +6518,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
             set xsim_wcfg_vcd_source "$main_sim_folder/$s/$xsim_wcfg_vcd_file"
             set xsim_wcfg_vcd_path "$sim_dir/xsim/$s.vcd"
             set xsim_wcfg_vcd_runtime [get_property XSIM.SIMULATE.RUNTIME [get_filesets $s]]
+            set xsim_user_custom_do [get_property XSIM.SIMULATE.CUSTOM_DO [get_filesets $s]]
 
             if {![file exists $xsim_wcfg_vcd_template]} {
               Msg Error "XSim WCFG VCD template is missing: $xsim_wcfg_vcd_template"
@@ -6541,7 +6536,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
             close $template_id
             file mkdir [file dirname $xsim_wcfg_vcd_source]
             set custom_do_id [open $xsim_wcfg_vcd_source w]
-            puts -nonewline $custom_do_id [string map [list @VCD_FILE@ "$s.vcd" @RUNTIME@ $xsim_wcfg_vcd_runtime] $template]
+            puts -nonewline $custom_do_id [string map [list @VCD_FILE@ "$s.vcd" @RUNTIME@ $xsim_wcfg_vcd_runtime @USER_CUSTOM_DO@ [file tail $xsim_user_custom_do]] $template]
             close $custom_do_id
 
             if {[llength [get_files -quiet $xsim_wcfg_vcd_source]] == 0} {
@@ -6569,6 +6564,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
             if {$use_xsim_wcfg_vcd == 1} {
               Msg Info "Generated WCFG-selected XSim VCD: $xsim_wcfg_vcd_path"
             }
+            source $repo_path/Hog/Tcl/integrated/post-simulation.tcl
             # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
             if {$use_simpass_str == 1} {
               # Get the simulation output log

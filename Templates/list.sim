@@ -31,6 +31,8 @@ XSIM.ELABORATE.RANGECHECK = False
 # Hog properties
 HOG_SIMPASS_STR=">> Sim SUCCESS:"
 HOG_SILENT_SIM=1
+# Read the loaded WCFG and write only its selected signals to <simulation-set>.vcd.
+# HOG_XSIM_WCFG_VCD=1
 [generics]
 # Simulation generics
 test_generic_1=1

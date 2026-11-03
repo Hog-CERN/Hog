@@ -6473,6 +6473,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
       # Default behaviour, dont use simpass string and simulation is not quiet
       set use_simpass_str 0
       set quiet_sim ""
+      set use_xsim_wcfg_vcd 0
 
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
@@ -6496,6 +6497,9 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
           } else {
             set quiet_sim ""
           }
+          if {[string toupper $prop_name] == "HOG_XSIM_WCFG_VCD" && $prop_val == 1} {
+            set use_xsim_wcfg_vcd 1
+          }
         }
 
         Msg Info "Creating simulation scripts for $s..."
@@ -6512,6 +6516,41 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         set sim_output_logfile $sim_dir/xsim/simulate.log
         if {([string tolower $simulator] eq "xsim")} {
           set sim_name "xsim:$s"
+          set xsim_wcfg_vcd_path ""
+
+          if {$use_xsim_wcfg_vcd == 1} {
+            set xsim_wcfg_vcd_template [file normalize "$repo_path/Hog/Tcl/integrated/xsim-wcfg-vcd.tcl.in"]
+            set xsim_wcfg_vcd_file "${s}_wcfg_vcd.tcl"
+            set xsim_wcfg_vcd_source "$main_sim_folder/$s/$xsim_wcfg_vcd_file"
+            set xsim_wcfg_vcd_path "$sim_dir/xsim/$s.vcd"
+            set xsim_wcfg_vcd_runtime [get_property XSIM.SIMULATE.RUNTIME [get_filesets $s]]
+
+            if {![file exists $xsim_wcfg_vcd_template]} {
+              Msg Error "XSim WCFG VCD template is missing: $xsim_wcfg_vcd_template"
+              lappend failed $sim_name
+              continue
+            }
+            if {$xsim_wcfg_vcd_runtime eq ""} {
+              Msg Error "XSIM.SIMULATE.RUNTIME must be set when HOG_XSIM_WCFG_VCD is enabled for $s"
+              lappend failed $sim_name
+              continue
+            }
+
+            set template_id [open $xsim_wcfg_vcd_template r]
+            set template [read $template_id]
+            close $template_id
+            file mkdir [file dirname $xsim_wcfg_vcd_source]
+            set custom_do_id [open $xsim_wcfg_vcd_source w]
+            puts -nonewline $custom_do_id [string map [list @VCD_FILE@ "$s.vcd" @RUNTIME@ $xsim_wcfg_vcd_runtime] $template]
+            close $custom_do_id
+
+            if {[llength [get_files -quiet $xsim_wcfg_vcd_source]] == 0} {
+              AddFile $xsim_wcfg_vcd_source [get_filesets $s]
+            }
+            set_property XSIM.SIMULATE.RUNTIME 0ns [get_filesets $s]
+            set_property XSIM.SIMULATE.CUSTOM_DO $xsim_wcfg_vcd_file [get_filesets $s]
+            Msg Info "Enabling WCFG-selected XSim VCD output for $s: $xsim_wcfg_vcd_path ($xsim_wcfg_vcd_runtime)"
+          }
 
           set simulation_command "launch_simulation $quiet_sim -simset [get_filesets $s]"
           if {[catch $simulation_command log]} {
@@ -6522,6 +6561,14 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
           } else {
             # Explicitly close xsim simulation, without closing Vivado
             close_sim
+            if {$use_xsim_wcfg_vcd == 1 && ![file exists $xsim_wcfg_vcd_path]} {
+              Msg CriticalWarning "WCFG-selected XSim VCD was requested but not generated: $xsim_wcfg_vcd_path"
+              lappend failed $sim_name
+              continue
+            }
+            if {$use_xsim_wcfg_vcd == 1} {
+              Msg Info "Generated WCFG-selected XSim VCD: $xsim_wcfg_vcd_path"
+            }
             # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
             if {$use_simpass_str == 1} {
               # Get the simulation output log

@@ -229,7 +229,11 @@ artifacts_and_release:
             PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
             DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
             echo "Hog-CI(info) - Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip...";
-            zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+            if [ -n "$(du -sb --threshold=$HOG_MAX_ZIP_SIZE $PRJ_DIR)" ]; then
+              zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+            else
+              zip -r -q ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+            fi;
           done;
           cd ..;
           if [ "${HOG_CHECK_PROJVER}" = "1" ]; then

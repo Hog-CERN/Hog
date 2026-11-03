@@ -21,6 +21,8 @@
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+unset HOG_ACTIVE_TOOL
+
 executables=(
     "vivado, unwrapped/lnx64.o/tclsh8.5:unwrapped/lnx32.o/tclsh8.5:unwrapped/lnx64.o/tclsh8.6:unwrapped/lnx32.o/tclsh8.6, ../lib/lnx64.o/:../lib/lnx32.o/, ../tps/tcl/tcl8.5/:../tps/tcl/tcl8.6/"
     "libero, ../bin64/acttclsh:../bin32/acttclsh, ../lib64/:../lib32/, ../lib64/tcl8.5/:../lib64/tcl8.6/"

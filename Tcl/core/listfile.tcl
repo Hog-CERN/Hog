@@ -110,7 +110,7 @@ namespace eval ListFile {
     #   decoder       Dict with optional keys:
     #     pre         Script. Implicit locals: hog_file (HogFileObj), raw_tokens, file_lib, list_ext.
     #                 Set `_done 1` to skip built-in decode.
-    #     post        Script. Implicit locals: hog_file (HogFileObj), raw_tokens. 
+    #     post        Script. Implicit locals: hog_file (HogFileObj), raw_tokens.
     #                 Called after library + prop parsing.
     #   encoder       Dict with optional keys:
     #     pre         Script. Implicit locals: hog_file (HogFileObj), tokens (list).
@@ -124,7 +124,7 @@ namespace eval ListFile {
       set row [dict create \
         pattern      $pattern \
         library_rule [expr {[dict exists $codec_dict library_rule] ? [dict get $codec_dict library_rule] : ""}] \
-        tool         [expr {[dict exists $codec_dict tool]         ? [dict get $codec_dict tool]         : ""}] \
+        tool         [expr {[dict exists $codec_dict tool]         ? [string toupper [dict get $codec_dict tool]] : ""}] \
         decoder_pre  "" \
         decoder_post "" \
         encoder_pre  "" \
@@ -148,6 +148,7 @@ namespace eval ListFile {
     # Returns the codec dict, or "" if nothing matches.
     proc _FindCodec {ext tool} {
       variable _table
+      set tool [string toupper $tool]
       set global_match ""
       set tool_match   ""
       foreach row $_table {
@@ -184,7 +185,7 @@ namespace eval ListFile {
     }
 
     # Parse raw property tokens into a tdict.
-    # Bare words become key="1"; 
+    # Bare words become key="1";
     # key=value pairs become key="value";
     # Values containing commas become a tlist of tstr
     proc ParseTokens {raw_tokens} {
@@ -294,7 +295,7 @@ namespace eval ListFile {
 
       # lib= token: emit when the stored library differs from the default.
       set lib_tlist [tdict get $hog_file libraries]
-      if {[tlist length lib_tlist] > 0 && $default_lib ne ""} {
+      if {[tlist length $lib_tlist] > 0 && $default_lib ne ""} {
         set lib_name [tlist getval $lib_tlist 0]
         if {$lib_name ne "${default_lib}${list_ext}"} {
           set lib_base [string range $lib_name 0 end-[string length $list_ext]]
@@ -318,7 +319,7 @@ namespace eval ListFile {
           set std "2008"
           foreach year {93 1987 1993 2008 2019} {
             if {[tdict exists $props $year]} {
-              set std $year 
+              set std $year
               set props [tdict remove $props $year]
               break
             }
@@ -353,7 +354,7 @@ namespace eval ListFile {
           if {[llength $raw_tokens] > 0} {
             tdict set props generated_vhd [tstr [lindex $raw_tokens 0]]
             set bare [lindex $raw_tokens 0]
-            if {[tdict exists $props $bare]} { 
+            if {[tdict exists $props $bare]} {
               set props [tdict remove $props $bare]
               }
           }

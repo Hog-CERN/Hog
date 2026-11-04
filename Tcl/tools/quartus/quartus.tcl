@@ -1,24 +1,56 @@
 namespace eval Tools::Quartus {
-  variable Manifest {
+  Tools::RegisterTool [namespace current] {
     name        "Quartus"
     vendor      "Altera"
     description "Altera Quartus Prime Pro and Standard Edition"
-    aliases     "quartus quartus_pro quartus_std"
-    Flows {
-      CREATE {
-        aliases {C}
-        description "Create the project, replace it if already existing."
-        options {
-          {ext_path.arg   "" "Sets the absolute path for the external libraries."}
-          {verbose           "If set, launch the script in verbose mode"}
-        }
-        stages  {
-          CreateProject
-          AddProjectFiles
-        }
-      }
+    ref_name    {quartus quartus_pro quartus_std}
+  }
+
+  RegisterFlow CREATE {
+    aliases {C}
+    description "Create the project, replace it if already existing."
+    options {
+      {ext_path.arg   "" "Sets the absolute path for the external libraries."}
+      {verbose           "If set, launch the script in verbose mode"}
+    }
+    stages  {
+      CreateProject
+      AddProjectFiles
     }
   }
+
+  RegisterFlow SYNTHESIS {
+    aliases {synth synthesize}
+    description "Run synthesis only, create the project if not existing."
+    stages  {@CREATE Synthesize}
+    options {
+      {recreate        "If set, the project will be re-created if it already exists."}
+      {njobs.arg 4     "Number of jobs."}
+      {check_syntax    "If set, the HDL syntax will be checked before synthesis."}
+    }
+  }
+
+  RegisterFlow IMPLEMENTATION {
+    aliases {i impl implement}
+    description "Run implementation (fit + timing), creating and synthesising first if needed."
+    stages  {@SYNTHESIS Implement}
+    options {
+      {no_bitstream    "If set, the bitstream file will not be produced."}
+    }
+  }
+
+  RegisterFlow WORKFLOW {
+    aliases {w work cw}
+    description "Run the full workflow, creates the project if not existing."
+    stages  {@IMPLEMENTATION GenerateBitstream}
+  }
+
+  RegisterStage CreateProject     { description "Create the Quartus project from the Top/ description." }
+  RegisterStage AddProjectFiles   { description "Add the list-file sources to the Quartus project." }
+  RegisterStage CheckSyntax       { description "Analyse every HDL source with quartus_map." }
+  RegisterStage Synthesize        { description "Run IP generation and Analysis & Synthesis." }
+  RegisterStage Implement         { description "Run Partition Merge (if incremental), Fitter and Timing Analyzer." }
+  RegisterStage GenerateBitstream { description "Run the Assembler." }
 
   ## @brief Returns true, if IDE is Quartus
   proc IsActive {} {
@@ -31,6 +63,11 @@ namespace eval Tools::Quartus {
     }
   }
 
+  ## @brief True on Quartus Prime Pro (the version string ends in "Pro Edition").
+  proc IsPro {} {
+    return [expr {[info exists ::quartus(version)] && [string match "*Pro Edition*" $::quartus(version)]}]
+  }
+
   proc Launch {} {
     set script [Launcher::Get script]
     Msg Info "Launching quartus: \n    quartus_sh -t $script {*}$::argv"
@@ -39,7 +76,13 @@ namespace eval Tools::Quartus {
   }
 
   proc Initialize {} {
-    # Tool-specific setup — DataStores are already populated by _ConfigureEnvironment
+    # The flow/report packages are only loadable inside quartus_sh.
+    if {[IsActive]} {
+      package require ::quartus::project
+      load_package flow
+      load_package report
+    }
+
     set repo_path    [Repo::Get repo_path]
     set top_path     [Repo::Get top_path]
 
@@ -58,29 +101,45 @@ namespace eval Tools::Quartus {
   proc CreateProject {} {
     FlowControl::Require QUARTUS_INITIALIZED
     CurrentProject::SaveJsonToFile [Repo::Get repo_path]/last_run.json 1
+
     if {[file exists [CurrentProject::Get project_file]] && [Launcher::GetOr options recreate 1] == 0} {
       Msg Info "Project file found at [CurrentProject::Get project_file], opening project..."
-      #file mkdir "[CurrentProject::Get project_file]/[CurrentProject::Get project_name].gen/sources_1"
       OpenProject [CurrentProject::Get project_file] [Repo::Get repo_path]
-      FlowControl::Produce PROJECT_CREATED
+      FlowControl::Produce PROJECT_OPEN
       return
     }
 
-    Msg Info "Creating Quartus project with part: [CurrentProject::Get config main PART] at [CurrentProject::Get project_file]"
     if {[CurrentProject::Exists config main FAMILY] == 0} {
       Msg Error "You must specify a device Family for Quartus in your hog.conf file."
       return
     }
 
     set FAMILY [CurrentProject::Get config main FAMILY]
-    set PART [CurrentProject::Get config main PART]
+    set PART   [CurrentProject::Get config main PART]
+    Msg Info "Creating Quartus project with part: $PART at [CurrentProject::Get project_file]"
+
+    if {[is_project_open]} { project_close }
     file delete -force [CurrentProject::Get build_dir]
     file mkdir [CurrentProject::Get build_dir]
     cd [CurrentProject::Get build_dir]
     project_new -family $FAMILY -part $PART -overwrite [file tail [CurrentProject::Get design]]
     set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+    FlowControl::Produce PROJECT_OPEN
     FlowControl::Produce PROJECT_CREATED
     ConfigureProperties
+    ConfigureScripts
+    # Assignments only reach the .qsf on export/close; the process may exit first.
+    export_assignments
+  }
+
+  ## @brief Hook the Hog pre/post scripts into the Quartus flow.
+  #
+  # Quartus has no per-step Tcl hooks: a PRE_FLOW script runs before the whole
+  # flow and one POST_MODULE script runs after every module, which
+  # quartus-post-module.tcl dispatches on the module name.
+  proc ConfigureScripts {} {
+    set_global_assignment -name PRE_FLOW_SCRIPT_FILE    quartus_sh:[Repo::Get pre_synth]
+    set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:[Repo::Get quartus_post_module]
   }
 
   proc ConfigureProperties {} {
@@ -95,7 +154,8 @@ namespace eval Tools::Quartus {
   # as one flat dictionary rather than per fileset. Simulation libraries are
   # skipped, Quartus Prime cannot run them.
   proc AddProjectFiles {} {
-    FlowControl::Require PROJECT_CREATED
+    # A re-opened project (no recreate) already has its sources: nothing to do.
+    FlowControl::RequireOr PROJECT_CREATED { return }
 
     if {![is_project_open]} {
       Msg Error "Project is closed"
@@ -153,7 +213,7 @@ namespace eval Tools::Quartus {
           set_global_assignment -name $file_type $path
         }
         if {![tdict exists $props nogenerate]} {
-          GenerateQsysSystem $path [_QsysOpts $fobj]
+          _GenerateQsysSystem $path [_QsysOpts $fobj]
         }
       } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1} {
         set_global_assignment -name $file_type $path
@@ -167,6 +227,9 @@ namespace eval Tools::Quartus {
         set_global_assignment -name $file_type $path -library $rootlib
       }
     }
+
+    set_global_assignment -name TOP_LEVEL_ENTITY [CurrentProject::Get synth_top_module]
+    export_assignments
 
     if {[dict size $skipped_sim] > 0} {
       Msg Warning "Simulation files are not supported in Quartus Prime mode.\
@@ -255,72 +318,167 @@ namespace eval Tools::Quartus {
     }
   }
 
-    ## @brief Function used to generate a qsys system from a .qsys file.
-  #  The procedure adds the generated IPs to the project.
+  ## @brief Generate a qsys system from a .qsys file and add its IPs to the project.
   #
-  #  @param[in] qsysFile the Intel Platform Designed file (.qsys), containing the system to be generated
-  #  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
-  #
+  #  @param[in] qsysFile    the Platform Designer file (.qsys) to generate
+  #  @param[in] commandOpts extra qsys-generate options
   proc _GenerateQsysSystem {qsysFile commandOpts} {
-    global env
-    if {[file exists $qsysFile] != 0} {
-      set qsysPath [file dirname $qsysFile]
-      set qsysName [file rootname [file tail $qsysFile]]
-      set qsysIPDir "$qsysPath/$qsysName"
-      set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
+    if {![file exists $qsysFile]} {
+      Msg Error "Error while generating ip variations from qsys: $qsysFile not found!"
+      return
+    }
+    set qsysPath    [file dirname $qsysFile]
+    set qsysName    [file rootname [file tail $qsysFile]]
+    set qsysIPDir   "$qsysPath/$qsysName"
+    set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
 
-      set qsys_rootdir ""
-      if {![info exists ::env(QSYS_ROOTDIR)]} {
-        if {[info exists ::env(QUARTUS_ROOTDIR)]} {
-          set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
-          Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
-        } else {
-          Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
-        }
+    set cmd [file join [_QsysRootDir] qsys-generate]
+    Msg Info "Executing: $cmd $qsysFile --output-directory=$qsysIPDir $commandOpts"
+    Msg Info "Saving logfile in: $qsysLogFile"
+    if {[catch {exec -ignorestderr $cmd $qsysFile --output-directory=$qsysIPDir {*}$commandOpts >& $qsysLogFile} ret opt]} {
+      if {[lindex [dict get $opt -errorcode] 0] eq "CHILDSTATUS"} {
+        Msg CriticalWarning "$cmd returned with [lindex [dict get $opt -errorcode] end]"
       } else {
-        set qsys_rootdir $::env(QSYS_ROOTDIR)
+        Msg Error "Could not execute command $cmd: $ret"
+        return
       }
+    }
 
-      set cmd "$qsys_rootdir/qsys-generate"
-      set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
-      if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
-        Msg Info "Executing: $cmd $cmd_options"
-        Msg Info "Saving logfile in: $qsysLogFile"
-        if {[catch {eval exec -ignorestderr "$cmd $cmd_options >& $`"} ret opt]} {
-          set makeRet [lindex [dict get $opt -errorcode] end]
-          Msg CriticalWarning "$cmd returned with $makeRet"
-        }
-      } else {
-        Msg Error " Could not execute command $cmd"
-        exit 1
+    # Add the generated IPs to the project and record their checksums.
+    set ipFiles [concat \
+      [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] \
+      [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl]]
+    set tmp_dir [file normalize "./hogTmp"]
+    file mkdir $tmp_dir
+    set fh [open "$tmp_dir/.hogQsys.md5" a]
+    foreach ipFile $ipFiles {
+      set_global_assignment -name [FindFileType $ipFile] $ipFile
+      puts $fh "$ipFile\t[Md5Sum $ipFile]"
+    }
+    close $fh
+  }
+
+  ################################################################################
+  # Flow stages (ported from the legacy LaunchSynthesis / LaunchImplementation /
+  # GenerateBitstream / CheckSyntax Quartus branches in Tcl/hog.tcl)
+  ################################################################################
+
+  ## @brief Run one quartus module, reporting failure as a Msg Error.
+  proc _RunModule {tool args what} {
+    set revision [get_current_revision]
+    if {[catch {execute_module -tool $tool {*}$args} result]} {
+      Msg Error "Result: $result\n$what failed. See the report file.\n"
+      return 0
+    }
+    Msg Info "$what was successful for revision $revision.\n"
+    return 1
+  }
+
+  ## @brief Make sure the project is open (stage run on its own, e.g. 'quartus stage Synthesize').
+  proc _EnsureOpen {} {
+    FlowControl::RequireOr PROJECT_OPEN {
+      if {![file exists [CurrentProject::Get project_file]]} {
+        return -code error "Quartus project not found at [CurrentProject::Get project_file], run the CREATE flow first."
       }
-      #Add generated IPs to project
-      set qsysIPFileList [concat \
-        [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] \
-        [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl]]
-      foreach qsysIPFile $qsysIPFileList {
-        if {[file exists $qsysIPFile] != 0} {
-          set qsysIPFileType [FindFileType $qsysIPFile]
-          set_global_assignment -name $qsysIPFileType $qsysIPFile
-          # Write checksum to file
-          set IpMd5Sum [Md5Sum $qsysIPFile]
-          # open file for writing
-          set fileDir [file normalize "./hogTmp"]
-          set fileName "$fileDir/.hogQsys.md5"
-          if {![file exists $fileDir]} {
-            file mkdir $fileDir
+      OpenProject [CurrentProject::Get project_file] [Repo::Get repo_path]
+      FlowControl::Produce PROJECT_OPEN
+    }
+  }
+
+  proc CheckSyntax {} {
+    _EnsureOpen
+    set project_name [CurrentProject::Get project_name]
+    lassign [GetHogFiles -list_files "*.src" "[Repo::Get repo_path]/Top/$project_name/list/" [Repo::Get repo_path]] src_files dummy
+    dict for {lib files} $src_files {
+      foreach f $files {
+        if {[file extension $f] in {.vhd .vhdl .v .sv}} {
+          if {[catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+            Msg Error "\nResult: $result\nCheck syntax failed.\n"
+          } elseif {$result eq ""} {
+            Msg Info "Check syntax was successful for $f.\n"
+          } else {
+            Msg Warning "Found syntax error in file $f:\n $result\n"
           }
-          set hogQsysFile [open $fileName "a"]
-          set fileEntry "$qsysIPFile\t$IpMd5Sum"
-          puts $hogQsysFile $fileEntry
-          close $hogQsysFile
         }
       }
+    }
+  }
+
+  proc Synthesize {} {
+    _EnsureOpen
+    if {[Launcher::GetOr options check_syntax 0]} { CheckSyntax }
+
+    set njobs        [Launcher::GetOr options njobs 4]
+    set project_name [CurrentProject::Get project_name]
+    set project      [file tail [file rootname $project_name]]
+    set repo_path    [Repo::Get repo_path]
+    set_global_assignment -name NUM_PARALLEL_PROCESSORS $njobs
+    Msg Info "Number of jobs set to $njobs."
+
+    # Quartus doesn't run PRE_FLOW scripts for execute_module, so run it by hand.
+    # The project must be closed meanwhile or the script's own project_open conflicts.
+    set revision        [get_current_revision]
+    set tool            quartus_sh
+    set pre_flow_script [Repo::Get pre_synth]
+    set project_file    [CurrentProject::Get project_file]
+    project_close
+
+    lassign [ExecuteRet $tool -t $pre_flow_script quartus_map $project $revision] ret log
+    if {$ret != 0} {
+      Msg Warning "Can not execute $tool -t $pre_flow_script quartus_map $project $revision"
+      Msg Warning "LOG: $log"
     } else {
-      Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!"
+      Msg Info "Pre flow script executed!"
+      Msg Info "Pre flow script log: \n$log"
+    }
+
+    OpenProject $project_file $repo_path
+
+    _RunModule ipg   {-args --clean}    "IP Generation"
+    if {[_RunModule map {-args --parallel} "Analysis & Synthesis"]} {
+      FlowControl::Produce SYNTHESIS_DONE
+    }
+  }
+
+  proc Implement {} {
+    FlowControl::Require SYNTHESIS_DONE
+    _EnsureOpen
+    Msg Info "Starting implementation flow..."
+
+    # Partition Merge is Standard-only; Pro rejects the INCREMENTAL_COMPILATION assignment.
+    set ic [expr {[IsPro] ? "" : [get_global_assignment -name INCREMENTAL_COMPILATION]}]
+    if {$ic ne "" && [string toupper $ic] ne "OFF"} {
+      Msg Info "Incremental compilation enabled ($ic), running Partition Merge..."
+      _RunModule cdb {-args --merge=on} "Partition Merge"
+    }
+
+    if {![_RunModule fit {} "Place & Route"]} { return }
+
+    if {[_RunModule sta {-args --do_report_timing} "Time Quest"]} {
+      # Purely informational: panel/row names differ between editions, never fail on them.
+      if {[catch {
+        load_package report
+        load_report
+        set panel "Timing Analyzer||Timing Analyzer Summary"
+        Msg Info "*******************************************************************"
+        foreach row {{Device Name} {Timing Models} {Delay Model}} {
+          Msg Info "$row: [get_report_panel_data -name $panel -col 1 -row_name $row]"
+        }
+        Msg Info "*******************************************************************"
+      } err]} {
+        Msg Debug "Timing summary not available on this edition: $err"
+      }
+    }
+    FlowControl::Produce IMPLEMENTATION_DONE
+  }
+
+  proc GenerateBitstream {} {
+    FlowControl::Require IMPLEMENTATION_DONE
+    _EnsureOpen
+    Msg Info "Starting write bitstream flow..."
+    if {[_RunModule asm {} "Generate bitstream"]} {
+      FlowControl::Produce BITSTREAM_DONE
     }
   }
 
 }
-
-

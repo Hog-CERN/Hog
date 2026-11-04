@@ -10,6 +10,11 @@ InitHog
 ################################################################################
 ## Resolve argv -> node/project/options (mirrors onto Launcher).
 ################################################################################
+# quartus_sh -t hands its arguments over in $quartus(args), not in $::argv
+if {[info exists ::quartus(args)]} {
+  set ::argv $::quartus(args)
+}
+
 set _tool [ActiveTool::CurrentTool]
 Msg Debug "$_tool launched with arguments: $::argv"
 

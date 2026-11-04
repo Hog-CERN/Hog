@@ -83,14 +83,6 @@ Commands::RegisterCommand HELP.TOOLS {
 namespace eval Help {
 
 
-<<<<<<< HEAD
-  # expects tobj list of aliases; returns a plain string
-  proc _aliases {obj name} {
-    set als {}
-    tlist foreach a $obj {
-      set al [string tolower [tobj value $a]]
-      if {$al ne [string tolower $name]} { lappend als $al }
-=======
   # accepts either a plain list of alias strings (commands) or a tlist (flows).
   proc _aliases {obj name} {
     set als {}
@@ -104,7 +96,6 @@ namespace eval Help {
         set al [string tolower $a]
         if {$al ne [string tolower $name]} { lappend als $al }
       }
->>>>>>> origin/develop
     }
     return [expr {[llength $als] > 0 ? "([join $als {, }])" : ""}]
   }
@@ -133,8 +124,6 @@ namespace eval Help {
     puts "[string repeat "=" 80]\nHog Launcher - Help\n[string repeat "=" 80]"
   }
 
-<<<<<<< HEAD
-=======
   # Registered tool namespaces split as {builtin custom}
   proc _tool_groups {} {
     set _builtin {}
@@ -164,7 +153,6 @@ namespace eval Help {
       [_aliases [tdict getobjor $node aliases [tlist create]] [tdict getval $node name]] \
       [tdict getor $node description ""]]
   }
->>>>>>> origin/develop
 
   proc RenderPath {path} {
     _banner
@@ -173,21 +161,6 @@ namespace eval Help {
     if {[llength $_resolved] > 0 && [llength [dict get $_resolved remaining]] == 0} {
       # Matched a registered command
       set _node [dict get $_resolved node]
-<<<<<<< HEAD
-      set _p    [dict get $_resolved path]
-      if {[llength $_p] == 2 && [string toupper [lindex $_p 0]] eq "TOOL"} {
-        RenderTool [lindex $_p 1]
-        return
-      }
-
-      RenderCommand $_node $_p
-      return
-    }
-
-    # Single-segment path matching a flow alias -> multi-tool flow overview.
-    set _first [string toupper [lindex $path 0]]
-    if {[llength $path] == 1 && [tdict exists $::Flow::_registry aliases $_first]} {
-=======
       if {[Commands::Node::IsTool $_node]} {
         RenderTool [string tolower [tdict getval $_node name]]
         return
@@ -199,7 +172,6 @@ namespace eval Help {
     # Single-segment path naming a flow that several tools provide -> overview.
     set _first [string toupper [lindex $path 0]]
     if {[llength $path] == 1 && [llength [Commands::ToolsWithFlow $_first]] > 0} {
->>>>>>> origin/develop
       RenderFlows $_first
       return
     }
@@ -220,21 +192,7 @@ namespace eval Help {
       set vendor [expr {[dict exists $m vendor] ? " ([dict get $m vendor])" : ""}]
       return [format "  %-12s %s%s" [string tolower [namespace tail $ns]] [dict get $m name] $vendor]
     }}
-<<<<<<< HEAD
-    set _tools [lsort [namespace children ::Tools]]
-    set _builtin_tools [list]
-    set _custom_tools  [list]
-    foreach ns $_tools {
-      if {[catch {set m [${ns}::GetManifest]}]} continue
-      if {[dict exists $m custom] && [dict get $m custom]} {
-        lappend _custom_tools $ns
-      } else {
-        lappend _builtin_tools $ns
-      }
-    }
-=======
     lassign [_tool_groups] _builtin_tools _custom_tools
->>>>>>> origin/develop
     puts "Built-in tools:"
     foreach ns $_builtin_tools {
       set _row [apply $_fmt_tool_row $ns]
@@ -250,14 +208,6 @@ namespace eval Help {
     puts ""
 
     set _fmt_cmd_row {{cmd} {
-<<<<<<< HEAD
-      return [format "  %-10s  %s" [tdict getval $cmd name] [tdict getval $cmd description]]
-    }}
-
-    puts "General directives:"
-    tdict for {cname cmd} [::Commands::GetCommands] {
-      if {[tdict getval $cmd custom]} { continue }
-=======
       return [format "  %-10s  %s" [tdict getval $cmd name] [tdict getor $cmd description ""]]
     }}
 
@@ -265,19 +215,13 @@ namespace eval Help {
     dict for {cname cmd} [::Commands::GetCommands] {
       if {[Commands::Node::IsTool $cmd]} { continue }
       if {[tdict getor $cmd custom 0]}  { continue }
->>>>>>> origin/develop
       puts [apply $_fmt_cmd_row $cmd]
     }
 
     set _has_custom 0
-<<<<<<< HEAD
-    tdict for {cname cmd} [::Commands::GetCommands] {
-      if {![tdict getval $cmd custom]} { continue }
-=======
     dict for {cname cmd} [::Commands::GetCommands] {
       if {[Commands::Node::IsTool $cmd]} { continue }
       if {![tdict getor $cmd custom 0]}  { continue }
->>>>>>> origin/develop
       if {!$_has_custom} { puts "\nCustom commands:"; set _has_custom 1 }
       puts [apply $_fmt_cmd_row $cmd]
     }
@@ -300,20 +244,13 @@ namespace eval Help {
     puts ""
     puts "Additional information:"
     puts "  Help for a specific directive:  ./Hog/Do HELP <directive>   or   ./Hog/Do <directive> --help"
-<<<<<<< HEAD
-    puts "  Help for a tool:                ./Hog/Do HELP <tool>        or   ./Hog/Do HELP TOOL <tool>"
-=======
     puts "  List every tool:                ./Hog/Do HELP TOOLS"
     puts "  Help for a tool:                ./Hog/Do HELP <tool>        or   ./Hog/Do HELP TOOLS <tool>"
->>>>>>> origin/develop
     puts "  Help for a flow across tools:   ./Hog/Do HELP <flow>"
     puts "  Help for a tool's flow:         ./Hog/Do HELP FLOWS <tool> <flow>"
     puts ""
   }
 
-<<<<<<< HEAD
-  # Tool-level Help Page: ./Hog/Do HELP TOOL <tool>
-=======
   # Two lines per tool: identity, then what it offers.
   proc _tool_group_rows {label tools} {
     if {[llength $tools] == 0} { return }
@@ -369,7 +306,6 @@ namespace eval Help {
   }
 
   # Tool-level Help Page: ./Hog/Do HELP TOOLS <tool>
->>>>>>> origin/develop
   proc RenderTool {alias} {
     set _tns [Tools::ResolveAlias [string tolower $alias]]
     if {$_tns eq "" || [catch {${_tns}::GetManifest} _m]} {
@@ -380,15 +316,6 @@ namespace eval Help {
     }
     set _canon [string tolower [namespace tail $_tns]]
 
-<<<<<<< HEAD
-    # Fetch the TOOL <alias> subcommand node via ResolvePath so alias walking
-    # is handled automatically (e.g. vivado_vitis_classic → VIVADO).
-    set _r     [Commands::ResolvePath [list TOOL $_canon]]
-    set _tnode [expr {[llength $_r] > 0 ? [dict get $_r node] : {}}]
-
-    set _tname     [dict get $_m name]
-    set _alias_str [expr {$_tnode ne "" ? [_aliases [tdict get $_tnode aliases] [tdict getval $_tnode name]] : ""}]
-=======
     # Fetch the tool's own node via ResolvePath so alias walking is handled
     # automatically (e.g. vivado_vitis_classic → VIVADO).
     set _r     [Commands::ResolvePath [list $_canon]]
@@ -400,18 +327,13 @@ namespace eval Help {
       set _alias_str [_aliases [tdict getobjor $_tnode aliases [tlist create]] \
                                [tdict getval $_tnode name]]
     }
->>>>>>> origin/develop
     puts "Tool: $_tname  $_alias_str"
     if {[dict get $_m vendor]      ne ""} { puts "  Vendor:      [dict get $_m vendor]" }
     if {[dict get $_m description] ne ""} { puts "  Description: [dict get $_m description]" }
     if {[dict get $_m version]     ne ""} { puts "  Version:     [dict get $_m version]" }
     if {[dict get $_m custom]}             { puts "  Origin:      custom (user-defined)" }
     if {[dict get $_m _source_path] ne ""} { puts "  Source:      [dict get $_m _source_path]" }
-<<<<<<< HEAD
     puts "  Version Info:"
-=======
-    puts "  Version Info:"
->>>>>>> origin/develop
     set _git [dict get $_m _git]
     if {[dict size $_git] > 0} {
       dict for {_gk _gv} $_git {
@@ -422,28 +344,6 @@ namespace eval Help {
       puts "  Features:    [join [dict get $_m features] {, }]"
     }
     puts ""
-<<<<<<< HEAD
-    if {$_tnode ne "" && [tdict exists $_tnode subcommands]} {
-      # Real commands only — flows are projected into the tree too but get
-      # their own "Flows:" section below (and live under the FLOW group).
-      set _cmd_hdr 0
-      tdict for {_sname _snode} [tdict get $_tnode subcommands] {
-        if {$_sname eq "FLOW" || [Commands::IsFlow $_snode]} { continue }
-        if {!$_cmd_hdr} { puts "Usage: ./Hog/Do TOOL $_canon <command> \[OPTIONS\]\n\nCommands: (* - requires project)"; set _cmd_hdr 1 }
-        set _als  [_aliases [tdict get $_snode aliases] $_sname]
-        set _desc [expr {[tdict exists $_snode description] ? [tdict getval $_snode description] : ""}]
-        set _req  [expr {[tdict getval $_snode requires_proj] ? "*" : ""}]
-        puts [format "  %s%-16s %-12s  %s" $_req $_sname $_als $_desc]
-      }
-    }
-
-    if {[catch {Flow::GetToolFlows $_tns} _flows]} { set _flows {} }
-    set _flow_hdr 0
-    tdict for {_fn _fo} $_flows {
-      if {!$_flow_hdr} { puts "\nFlows (run via 'tool $_canon <flow> <project>'):"; set _flow_hdr 1 }
-      set _fdesc [expr {[tdict exists $_fo description] ? [tdict getval $_fo description] : ""}]
-      puts [format "  %-20s %s" $_fn $_fdesc]
-=======
     if {$_tnode ne ""} {
       set _groups  {}
       set _cmd_hdr 0
@@ -463,69 +363,11 @@ namespace eval Help {
         puts "\n[string totitle $_gname]s (run via 'tool $_canon $_gname <$_gname> <project>'):"
         foreach _c [Commands::GetChildren $_g] { puts [_child_row [Commands::GetCommand $_c] 2] }
       }
->>>>>>> origin/develop
     }
     puts ""
   }
 
 
-<<<<<<< HEAD
-  # Flow-level Help Page: ./Hog/Do HELP FLOWS <tool> <flow>
-  proc RenderToolFlow {tool_ns flow_name args} {
-    set _short [expr {"-short" in $args}]
-    set _flow  [Flow::GetFlow $tool_ns $flow_name]
-    if {[dict size $_flow] == 0} {
-      puts "Tool [namespace tail $tool_ns] has no flow '$flow_name'."
-      return
-    }
-    set _tool_short [string tolower [namespace tail $tool_ns]]
-
-    puts " [namespace tail $tool_ns]: $flow_name [_aliases [tdict get $_flow aliases] [tdict getval $_flow name]]"
-    if {[tdict exists $_flow custom] && [tdict getval $_flow custom]} {
-      puts "   (custom flow — user-defined)"
-    }
-    if {[string length [tdict getval $_flow description]] > 0} {
-      puts "   [tdict getval $_flow description]"
-    }
-    puts "   Stages:"
-    puts "     [string map {" " " -> "} [Flow::GetFlowStages $tool_ns $flow_name]]"
-
-    if {$_short} {
-      puts "   Run './Hog/Do HELP FLOWS $_tool_short [string tolower $flow_name]' for full options."
-    } else {
-      puts "\n   Options:"
-      puts "[_options_string [Flow::GetFlowOptions $tool_ns $flow_name] 5]"
-    }
-  }
-
-
-  # Flow-level Help Page: ./Hog/Do HELP <flow> (multi-tool flow overview)
-  proc RenderFlows {flow_name} {
-    puts "Flows matching '$flow_name':"
-    tlist foreach _flow [Flow::GetFlows $flow_name] {
-      set _tns [tobj value [tdict get $_flow tool]]
-      RenderToolFlow $_tns $flow_name -short
-    }
-  }
-
-
-
-  # Command-level Help Page: ./Hog/Do HELP <command>
-  proc RenderCommand {_node _path} {
-    set _pretty [join $_path { }]
-
-    # A projected flow node renders as a tool flow, not a generic command.
-    if {[Commands::IsFlow $_node]} {
-      set _tns [Tools::ResolveAlias [tobj value [tdict get $_node ide]]]
-      RenderToolFlow $_tns [tobj value [tdict get $_node flow_ref]]
-      return
-    }
-
-    set _has_subs  [expr {![Commands::IsLeaf $_node]}]
-    set _run       [Commands::IsRunnable $_node]
-    set _req_proj  [tdict getval $_node requires_proj]
-    set _proj_arg  [expr {$_req_proj ? {<project> } : {}}]
-=======
   # Flow-level Help Page: ./Hog/Do HELP <flow> - the same flow name across every
   # tool that provides it. Summaries only; the per-tool page has the options.
   proc RenderFlows {flow_name} {
@@ -561,7 +403,6 @@ namespace eval Help {
     set _run      [Commands::Node::IsRunnable $_node]
     set _req_proj [tdict getor $_node requires_proj 0]
     set _proj_arg [expr {$_req_proj ? {<project> } : {}}]
->>>>>>> origin/develop
 
     if {$_has_subs && $_run} {
       puts "Usage: ./Hog/Do $_pretty ${_proj_arg}\[<subcommand>\] \[OPTIONS\]"
@@ -572,19 +413,6 @@ namespace eval Help {
     }
     if {$_req_proj} { puts " Requires: project" }
     puts ""
-<<<<<<< HEAD
-    puts "$_pretty [_aliases [tdict get $_node aliases] [tdict getval $_node name]]:"
-
-    puts " [tdict getval $_node description]"
-
-    if {$_run} {
-      set _opt_list [list]
-      tlist foreachval _option [tdict get $_node options] { lappend _opt_list $_option }
-      if {[llength $_opt_list] > 0} {
-        puts "\n Options:"
-        puts "[_options_string $_opt_list 3]"
-      }
-=======
     puts "$_pretty [_aliases [tdict getobjor $_node aliases [tlist create]] [tdict getval $_node name]]:"
     puts " [tdict getor $_node description ""]"
     if {[tdict getor $_node custom 0]} { puts " (custom — user-defined)" }
@@ -601,21 +429,12 @@ namespace eval Help {
     if {$_run && [llength $_opts] > 0} {
       puts "\n Options:"
       puts "[_options_string $_opts 3]"
->>>>>>> origin/develop
     }
 
     if {$_has_subs} {
       puts "\n Subcommands: (* - requires project)"
-<<<<<<< HEAD
-      tdict for {_sname _snode} [tdict get $_node subcommands] {
-        set _als  [_aliases [tdict get $_snode aliases] $_sname]
-        set _desc [expr {[tdict exists $_snode description] ? [tdict getval $_snode description] : ""}]
-        set _req  [expr {[tdict getval $_snode requires_proj] ? "*" : ""}]
-        puts [format "   %s%-16s %-12s  %s" $_req $_sname $_als $_desc]
-=======
       foreach _child_canon [Commands::GetChildren [tdict getval $_node canon]] {
         puts [_child_row [Commands::GetCommand $_child_canon] 3]
->>>>>>> origin/develop
       }
       puts ""
     }

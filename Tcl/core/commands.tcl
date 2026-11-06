@@ -74,6 +74,7 @@ namespace eval Commands {
       { requires_proj bool 0     }
       { api           bool 0     }
       { passthrough   bool 0     }
+      { presets       list {}    }
     }
 
 
@@ -783,7 +784,94 @@ namespace eval Commands {
     return [string trimright [regsub {^(\./)?Top/} $token ""] "/ "]
   }
 
+  # Option names (no dash, no ".arg") that take a value, from a list of cmdline specs.
+  proc _value_opts {specs} {
+    set out {}
+    foreach spec $specs {
+      set n [lindex $spec 0]
+      if {[string match "*.arg" $n]} { lappend out [string range $n 0 end-4] }
+    }
+    return $out
+  }
+
+  # Every option name that takes a value in at least one registered command.
+  proc _all_value_opts {} {
+    variable nodes
+    set out {}
+    dict for {canon node} $nodes {
+      set specs {}
+      tlist foreachval o [tdict getobjor $node options [tlist create]] { lappend specs $o }
+      lappend out {*}[_value_opts $specs]
+    }
+    return [lsort -unique $out]
+  }
+
+  # Split argv into positional words and option tokens, following the same rules
+  # as cmdline::getKnownOpt: "-opt" or "--opt", and "-opt=value". An option named
+  # in value_opts, and not written as -opt=value, also takes the next token as
+  # its value. A bare "--" is kept with the options, where cmdline stops at it.
+  proc _split_argv {argv value_opts} {
+    set words {}
+    set flags {}
+    set n [llength $argv]
+    for {set i 0} {$i < $n} {incr i} {
+      set tok [lindex $argv $i]
+      if {![string match "-?*" $tok]} { lappend words $tok; continue }
+      lappend flags $tok
+      set name [regsub {^--?} $tok ""]
+      if {[string first "=" $name] >= 0} continue
+      if {$name in $value_opts && $i+1 < $n} {
+        incr i
+        lappend flags [lindex $argv $i]
+      }
+    }
+    return [list $words $flags]
+  }
+
+  # Options may appear anywhere on the command line, as with the legacy launcher
+  # (e.g. "./Hog/Do -njobs 8 W example -recreate").
+  #
+  # Which options take a value depends on the command, but the command is only
+  # known once argv has been resolved. So argv is split twice:
+  #  1. assuming an option takes a value if it does in *any* command, which is
+  #     enough to find the positional words and resolve the command. If that
+  #     resolves nothing (a boolean option that takes a value elsewhere may have
+  #     swallowed the directive), retry treating every option as a boolean;
+  #  2. again with the resolved command's own specs. This only differs when a
+  #     name takes a value elsewhere but is a boolean here: the token the first
+  #     split took as its value is a positional word after all.
+  # The second result is used only if it resolves to the same command.
+  # Either way the options are moved after the positionals, which is the order
+  # _ParseOrdered expects.
   proc ParseArgv {argv top_path} {
+    set request {}
+    foreach guess [list [_all_value_opts] {}] {
+      lassign [_split_argv $argv $guess] words flags
+      set attempt [_ParseOrdered [list {*}$words {*}$flags] $top_path]
+      # Keep the first attempt for error reporting if neither resolves.
+      if {$request eq {} || [dict get $attempt node] ne {}} { set request $attempt }
+      if {[dict get $attempt node] ne {}} break
+    }
+    set node [dict get $request node]
+    if {$node eq {}} { return $request }
+
+    lassign [_split_argv $argv [_value_opts [GetCommandOptions $node]]] words2 flags2
+    if {$words2 eq $words} { return $request }
+
+    set request2 [_ParseOrdered [list {*}$words2 {*}$flags2] $top_path]
+    set node2    [dict get $request2 node]
+    if {$node2 ne {} && [tdict getval $node2 canon] eq [tdict getval $node canon]} {
+      return $request2
+    }
+    return $request
+  }
+
+  # Parse an argv whose positionals all come before its options.
+  proc _ParseOrdered {argv top_path} {
+    # The directive as typed (before flow-shorthand expansion), or "" if there
+    # are no positionals at all.
+    set typed_directive [expr {[string match "-*" [lindex $argv 0]] ? "" : [lindex $argv 0]}]
+
     if {[llength $argv] >= 2 && ![string match "-*" [lindex $argv 1]]} {
       set argv [lreplace $argv 1 1 [_strip_top [lindex $argv 1]]]
     }
@@ -837,6 +925,7 @@ namespace eval Commands {
     }
 
     return [dict create \
+      directive    $typed_directive \
       node         $node \
       typed_path   $path \
       args         $pargs \
@@ -914,8 +1003,10 @@ namespace eval Commands {
   # Parse argv into a request and mirror it onto the Launcher DataStore.
   # Does not load projects or execute - callers own that ordering.
   proc Resolve {argv} {
-    set directive [string toupper [lindex $argv 0]]
+    # Options may come before the directive, so take it from the parse rather
+    # than from argv[0].
     set request   [ParseArgv $argv [Repo::Get top_path]]
+    set directive [string toupper [dict get $request directive]]
 
     Launcher::Set directive    $directive
     Launcher::Set cmd          [expr {[dict get $request node] ne {} ? [tdict getval [dict get $request node] canon] : ""}]
@@ -960,6 +1051,16 @@ namespace eval Commands {
     }
     set _t [tdict create]
     foreach k [array names _parsed] { tdict set _t $k [tinf $_parsed($k)] }
+    # Set the presets here independently from the parsed options
+    if {$node ne ""} {
+      if {[tdict exists $node presets]} {
+        set presets [tnative [tdict getval $node presets]]
+        foreach {k v} $presets {
+          tdict set _t $k [tinf $v]
+        }
+      }
+    }
+
     Launcher::Set options $_t
 
     set verdict [Dispatch $node $typed_path $project]

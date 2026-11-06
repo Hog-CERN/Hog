@@ -26,25 +26,24 @@ namespace eval Tools::Vivado {
     aliases {synth synthesize}
     stages  {@CREATE Synthesize}
     description "Run synthesis only, create the project if not existing."
+    # recreate stays here rather than on CreateProject: CreateProject reads it with
+    # a default of 1, so declaring it on the stage would make CREATE stop replacing
+    # an existing project unless -recreate is passed.
     options {
       {recreate        "If set, the project will be re-created if it already exists."}
       {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
-      {njobs.arg 4     "Number of jobs."}
-      {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
     }
   }
 
+  # Inherits every option from @SYNTHESIS and the Implement stage.
   RegisterFlow IMPLEMENTATION {
     aliases {i impl implement}
     description "Runs only the implementation, the project must already exist and be synthesised."
     stages  {@SYNTHESIS Implement}
-    options {
-      {no_bitstream    "If set, the bitstream file will not be produced."}
-    }
   }
 
   RegisterFlow WORKFLOW {
-    aliases {w work cw}
+    aliases {w work}
     description "Runs the full workflow, creates the project if not existing."
     options {
       {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
@@ -56,11 +55,31 @@ namespace eval Tools::Vivado {
     stages  {@IMPLEMENTATION GenerateBitstream}
   }
 
+  RegisterFlow CREATEWORKFLOW {
+    aliases {cw}
+    description "Creates the project -even if existing- and launches the complete workflow."
+    presets {recreate 1}
+    stages  {@WORKFLOW}
+  }
 
-  RegisterStage Synthesize        { description "Run the synthesis run." }
+
+  # Options a stage proc reads are declared on the stage itself, so every flow that
+  # includes the stage (directly or via an @reference) inherits them. Options shared
+  # by several stages are defined once here so their specs can't drift apart:
+  # flattening keeps the first spec per name, so two differing copies would
+  # silently shadow one another.
+  set _run_opts {
+    {njobs.arg 4     "Number of jobs."}
+    {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
+  }
+
   RegisterStage CreateProject     { description "Create the Vivado project from the Top/ description." }
-  RegisterStage Implement         { description "Run the implementation run." }
+  RegisterStage Synthesize        [list description "Run the synthesis run." options $_run_opts]
+  RegisterStage Implement         [list description "Run the implementation run." options [list {*}$_run_opts \
+    {no_bitstream    "If set, the bitstream file will not be produced."} \
+  ]]
   RegisterStage GenerateBitstream { description "Write the bitstream." }
+  unset _run_opts
 
 
   #Add vivado-only commands

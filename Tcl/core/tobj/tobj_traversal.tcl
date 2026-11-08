@@ -1,12 +1,12 @@
-# Shared path operations for tdict and classes
+# Shared path operations for tdict and structs
 # The write path is mostly an optimization: translate keys through the __v__
 # wrappers into a native dict path, without retaining extra container references.
 # This lets Tcl update unshared containers without copying them at each edit.
-# Traversal also checks container types and declared class fields. Writes validate
+# Traversal also checks container types and declared struct fields. Writes validate
 # replacement values before committing, so rejected edits leave the object intact.
 
 namespace eval tobj {
-  # Translate a Dict/class path into native dict keys, checking each ancestor.
+  # Translate a Dict/struct path into native dict keys, checking each ancestor.
   # Return {keys missingKeys expectedType context exists}; hold no object values.
   proc _planDictPath {obj path createMissing context {replaceParents 0}
       {action edit}} {
@@ -34,7 +34,7 @@ namespace eval tobj {
         return [list $keys $missingKeys "" $context.[join $path .] 0]
       }
       if {$objType ne "Dict"} {
-        # Build the field context only for class checks.
+        # Build the field context only for struct checks.
         set parentContext $context
         if {$position > 1} { append parentContext .[join [lrange $path 0 [expr {$position - 2}]] .] }
         set keyAction read
@@ -58,7 +58,7 @@ namespace eval tobj {
     return {}
   }
 
-  # Follow Dict/class keys only. Lists remain valid values at the end of a path.
+  # Follow Dict/struct keys only. Lists remain valid values at the end of a path.
   proc readPath {obj {path {}} {context tobj}} {
     type $obj
     foreach key $path {
@@ -79,7 +79,7 @@ namespace eval tobj {
   }
 
   # Mutate the caller's variable. replaceParents lets tdict replace non-Dict
-  # ancestors and create missing append targets; class fields follow schemas.
+  # ancestors and create missing append targets; struct fields follow schemas.
   proc editPath {objVar path operation value {context tobj} {replaceParents 0}} {
     upvar 1 $objVar obj
     if {$operation ni {set append unset}} { _fail USAGE "unknown edit operation '$operation'" }
@@ -89,7 +89,7 @@ namespace eval tobj {
     if {![llength $path]} {
       switch -- $operation {
         set {
-          # Root replacement also requires a typed object and retains its class.
+          # Root replacement also requires a typed object and retains its struct.
           type $obj
           set expectedType ""
           set objType [dict get $obj __t__]

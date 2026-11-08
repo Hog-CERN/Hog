@@ -54,8 +54,8 @@ namespace eval tobj {
         if {$pretty && $type eq "Dict" && [dict size $value] == 0} { return "{}" }
         set pairs {}
         if {$type ne "Dict"} {
-          if {[dict exists $value __class__]} { _fail SCHEMA "class payload reserves __class__" }
-          lappend pairs "${pad1}\"__class__\": \"[_escapeJson $type]\""
+          if {[dict exists $value __struct__]} { _fail SCHEMA "struct payload reserves __struct__" }
+          lappend pairs "${pad1}\"__struct__\": \"[_escapeJson $type]\""
         }
         dict for {k child} $value {
           lappend pairs "${pad1}\"[_escapeJson $k]\": [_renderJson $child $next]"
@@ -105,7 +105,7 @@ namespace eval tobj {
 
   # Native values
 
-  # Class dicts include __class__; Bool becomes 1/0 and Null an empty string.
+  # Struct dicts include __struct__; Bool becomes 1/0 and Null an empty string.
   proc native {obj} {
     if {![isobj $obj]} { error "tobj native: not a tobj" "" {INVALID_TOBJ} }
     set type [dict get $obj __t__]
@@ -118,8 +118,8 @@ namespace eval tobj {
       Dict {
         set result {}
         if {$type ne "Dict"} {
-          if {[dict exists $obj __v__ __class__]} { _fail SCHEMA "class payload reserves __class__" }
-          dict set result __class__ $type
+          if {[dict exists $obj __v__ __struct__]} { _fail SCHEMA "struct payload reserves __struct__" }
+          dict set result __struct__ $type
         }
         dict for {key child} [dict get $obj __v__] { dict set result $key [native $child] }
         return $result
@@ -130,7 +130,7 @@ namespace eval tobj {
     }
   }
 
-  # Unwrap scalars; leave Dicts, Lists, and class objects typed.
+  # Unwrap scalars; leave Dicts, Lists, and struct values typed.
   proc unwrapScalar {obj} {
     if {[storageType [type $obj]] in {Dict List}} { return $obj }
     return [dict get $obj __v__]
@@ -146,10 +146,10 @@ namespace eval tobj {
   proc _validateObj {obj context {type {}}} {
     if {![isobj $obj]} { _fail TYPE "$context: not a typed object" }
     if {$type eq ""} { set type [dict get $obj __t__] }
-    if {$type ni {String Number Bool Null Dict List}} { ValidateObject $type $obj; return }
+    if {$type ni {String Number Bool Null Dict List}} { ValidateStruct $type $obj; return }
     set actualType [dict get $obj __t__]
     if {$type eq "Dict" && $actualType ne "Dict" && [storageType $actualType] eq "Dict"} {
-      ValidateObject $actualType $obj
+      ValidateStruct $actualType $obj
       return
     }
     if {$actualType ne $type} { _fail TYPE "$context: expected $type, got $actualType" }
@@ -214,13 +214,13 @@ namespace eval tobj {
         }
         return [create List $items]
       }
-      default { _fail TYPE "$context: expected a $expectedType object (a typed object), got '$value'" }
+      default { _fail TYPE "$context: expected a $expectedType struct (a typed object), got '$value'" }
     }
   }
 
-  # Classes
-  # we store class objects as __t__ <class> __v__ key(field)->value
-  # class objects have a stricter contract on what can and cannot be done to them
+  # Structs
+  # we store struct values as __t__ <struct> __v__ key(field)->value
+  # struct values have a stricter contract on what can and cannot be done to them
   # for example: fields are always present and we cannot unset them
 
   variable schemas
@@ -234,66 +234,66 @@ namespace eval tobj {
     _fail TYPE "tobj: unknown type '$type'"
   }
 
-  proc RegisterClass {className fields} {
+  proc RegisterStruct {structName fields} {
     variable schemas
     variable builtinTypes
-    if {$className eq ""} { _fail SCHEMA "class name must not be empty" }
-    if {$className in $builtinTypes} { _fail SCHEMA "invalid class name '$className': built-in types are reserved" }
+    if {$structName eq ""} { _fail SCHEMA "struct name must not be empty" }
+    if {$structName in $builtinTypes} { _fail SCHEMA "invalid struct name '$structName': built-in types are reserved" }
     dict for {name spec} $fields {
       if {[string match __* $name]} { _fail SCHEMA "invalid field name '$name'" }
       set declaredType [dict get $spec type]
       set default [dict get $spec default]
       if {$declaredType in {String Number Bool Null Dict List}} { coerce $declaredType $default }
     }
-    dict set schemas $className $fields
-    return $className
+    dict set schemas $structName $fields
+    return $structName
   }
 
-  proc ClassFields {className} {
+  proc StructFields {structName} {
     variable schemas
-    if {![dict exists $schemas $className]} { _fail CLASS "unknown class '$className'" }
-    return [dict get $schemas $className]
+    if {![dict exists $schemas $structName]} { _fail STRUCT "unknown struct '$structName'" }
+    return [dict get $schemas $structName]
   }
 
-  proc _className {obj} {
+  proc _structName {obj} {
     variable schemas
     if {![isobj $obj]} { return "" }
-    set className [dict get $obj __t__]
-    if {[dict exists $schemas $className]} { return $className }
+    set structName [dict get $obj __t__]
+    if {[dict exists $schemas $structName]} { return $structName }
     return ""
   }
 
-  proc RequireClass {className obj} {
+  proc RequireStruct {structName obj} {
     variable schemas
-    if {[dict exists $schemas $className] && ![catch {dict get $obj __t__} got] &&
-        $got eq $className && [dict exists $obj __v__]} { return }
-    set got [_className $obj]
-    if {$got ne ""} { _fail CLASS "expected a $className object, got a $got object" }
-    _fail CLASS "expected a $className object, got '[string range $obj 0 40]'"
+    if {[dict exists $schemas $structName] && ![catch {dict get $obj __t__} got] &&
+        $got eq $structName && [dict exists $obj __v__]} { return }
+    set got [_structName $obj]
+    if {$got ne ""} { _fail STRUCT "expected a $structName struct, got a $got struct" }
+    _fail STRUCT "expected a $structName struct, got '[string range $obj 0 40]'"
   }
 
-  # Class fields must be declared and present, and cannot be unset
+  # Struct fields must be declared and present, and cannot be unset
   proc _fieldType {obj key context action} {
     variable schemas
-    set className [dict get $obj __t__]
-    if {![dict exists $schemas $className]} { _fail CLASS "unknown class '$className'" }
-    if {![dict exists $schemas $className $key]} { _fail SCHEMA "$context: '$key' is not a declared field of $className" }
-    if {![dict exists $obj __v__ $key]} { _fail SCHEMA "$context: field '$key' of $className is missing" }
+    set structName [dict get $obj __t__]
+    if {![dict exists $schemas $structName]} { _fail STRUCT "unknown struct '$structName'" }
+    if {![dict exists $schemas $structName $key]} { _fail SCHEMA "$context: '$key' is not a declared field of $structName" }
+    if {![dict exists $obj __v__ $key]} { _fail SCHEMA "$context: field '$key' of $structName is missing" }
     if {$action eq "unset"} { _fail SCHEMA "$context.$key: cannot unset a declared field" }
-    return [dict get $schemas $className $key type]
+    return [dict get $schemas $structName $key type]
   }
 
-  proc ValidateObject {className obj} {
-    set fields [ClassFields $className]
-    RequireClass $className $obj
+  proc ValidateStruct {structName obj} {
+    set fields [StructFields $structName]
+    RequireStruct $structName $obj
     set fieldValues [dict get $obj __v__]
-    if {[catch {dict size $fieldValues}]} { _fail TYPE "$className: malformed object fields" }
+    if {[catch {dict size $fieldValues}]} { _fail TYPE "$structName: malformed struct fields" }
     dict for {fieldName child} $fieldValues {
-      if {![dict exists $fields $fieldName]} { _fail SCHEMA "$className: '$fieldName' is not a declared field" }
+      if {![dict exists $fields $fieldName]} { _fail SCHEMA "$structName: '$fieldName' is not a declared field" }
     }
     dict for {fieldName spec} $fields {
-      if {![dict exists $fieldValues $fieldName]} { _fail SCHEMA "$className: field '$fieldName' is missing" }
-      _validateObj [dict get $fieldValues $fieldName] $className.$fieldName [dict get $spec type]
+      if {![dict exists $fieldValues $fieldName]} { _fail SCHEMA "$structName: field '$fieldName' is missing" }
+      _validateObj [dict get $fieldValues $fieldName] $structName.$fieldName [dict get $spec type]
     }
     return 1
   }

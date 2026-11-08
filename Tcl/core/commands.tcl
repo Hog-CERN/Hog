@@ -862,7 +862,6 @@ namespace eval Commands {
       set ::DataStore::inIDE 1
       set tool [Tools::ResolveAlias $ide]
       Launcher::Set ide       $tool
-      CurrentProject::Set ide $tool
       if {[info commands ${tool}::Initialize] ne ""} { ${tool}::Initialize }
     }
     Node::Run $node $full_path
@@ -919,13 +918,11 @@ namespace eval Commands {
 
     Launcher::Set directive    $directive
     Launcher::Set cmd          [expr {[dict get $request node] ne {} ? [tdict getval [dict get $request node] canon] : ""}]
-    Launcher::Set full_cmd     [dict get $request typed_path]
+    Launcher::Set full_cmd     [tlist createstr {*}[dict get $request typed_path]]
     Launcher::Set args         [tlist createstr {*}[dict get $request args]]
     Launcher::Set project      [dict get $request project]
     Launcher::Set project_name [dict get $request project_name]
-
-    # Raw, unparsed flags; RunRequest replaces this with the parsed tdict.
-    Launcher::Set options      [tlist createstr {*}[dict get $request options]]
+    Launcher::Set options      [tdict create]
     return $request
   }
 

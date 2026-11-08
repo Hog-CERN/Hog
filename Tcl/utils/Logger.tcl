@@ -188,9 +188,15 @@ proc Msg {level fmsg {title ""}} {
       puts "Hog Error: level $level not defined"
       exit -1
     }
-    # Every branch below exits on an error, so notify the desktop while we still can
+    set throwError [expr {$qlevel == "error" &&
+      [info exists ::HOG_THROW_ERRORS] && $::HOG_THROW_ERRORS}]
+    # API errors leave stdout to the launcher's JSON response. Other errors
+    # keep their normal output before propagating to the launcher.
     if {$qlevel == "error"} {
       Notify $level $msg "Hog $vlevel"
+      if {$throwError && [info exists ::HOG_API_MODE] && $::HOG_API_MODE} {
+        return -code error -errorcode {HOG ERROR} $msg
+      }
     }
     if {[IsXilinx]} {
       # Vivado
@@ -198,13 +204,13 @@ proc Msg {level fmsg {title ""}} {
         set msg " $msg"
       }
       set status [catch {send_msg_id Hog:$title-0 $vlevel "$msg"}]
-      if {$status != 0} {
+      if {$status != 0 && !$throwError} {
         exit $status
       }
     } elseif {[IsQuartus]} {
       # Quartus
       post_message -type $qlevel "Hog:$title $msg"
-      if {$qlevel == "error"} {
+      if {$qlevel == "error" && !$throwError} {
         exit 1
       }
     } else {
@@ -223,9 +229,12 @@ proc Msg {level fmsg {title ""}} {
         set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
         puts "$msg"
       }
-      if {$qlevel == "error"} {
+      if {$qlevel == "error" && !$throwError} {
         exit 1
       }
+    }
+    if {$throwError} {
+      return -code error -errorcode {HOG ERROR} -hogreported 1 $msg
     }
   # }
 }

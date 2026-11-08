@@ -7848,7 +7848,7 @@ proc ReadConf {file_name} {
 
 
   ::ini::commentchar "#"
-  set f [::ini::open $file_name]
+  set f [::ini::open $file_name r]
   set properties [dict create]
   foreach sec [::ini::sections $f] {
     set new_sec $sec

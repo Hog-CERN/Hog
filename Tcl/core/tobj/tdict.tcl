@@ -39,7 +39,7 @@ namespace eval tdict {
   }
 
   # tdict getor dict key ?key ...? default
-  # Return the default on lookup errors; class schema errors propagate.
+  # Return the default on lookup errors; struct schema errors propagate.
   proc getor {obj args} {
     if {[llength $args] < 2} {
       error "tdict getor: usage: tdict getor dict key ?key ...? default" "" {INVALID_ARGS}
@@ -181,7 +181,7 @@ namespace eval tdict {
     ::set code [dict get $opts -errorcode]
     if {[lindex $code 0] eq "TOBJ"} {
       switch -- [lindex $code 1] {
-        SCHEMA - CLASS { }
+        SCHEMA - STRUCT { }
         MISSING { dict set opts -errorcode INVALID_TOBJ_KEY }
         TYPE    { dict set opts -errorcode INVALID_TOBJ_TYPE }
         default { dict set opts -errorcode INVALID_TOBJ_DICT }

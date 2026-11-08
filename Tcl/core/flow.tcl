@@ -72,7 +72,7 @@ namespace eval Artifact {
 
   # "" when no project is current - callers must treat that as "no store".
   proc _dir {} {
-    if {![CurrentProject::Exists project_name]} { return "" }
+    if {[CurrentProject::Get project_name] eq ""} { return "" }
     return [file join [CurrentProject::Get build_dir] .hog tokens]
   }
 
@@ -151,7 +151,7 @@ namespace eval FlowControl {
   # gates artifacts from being stored without a current project or from within a stage
   proc _stage_context {} {
     variable _state
-    return [expr {[tdict getval $_state stage] ne "" && [CurrentProject::Exists project_name]}]
+    return [expr {[tdict getval $_state stage] ne "" && [CurrentProject::Get project_name] ne ""}]
   }
 
   # Creates a persitant artifact
@@ -163,7 +163,7 @@ namespace eval FlowControl {
     variable _state
     set producer [StageProc [tdict getval $_state stage]]
     if {$producer eq ""} { set producer [tdict getval $_state stage] }
-    set record [dict create producer $producer describe [Repo::Get Tag] mtime [clock seconds]]
+    set record [dict create producer $producer describe [Repo::Get git_tag] mtime [clock seconds]]
     if {$path ne ""} {
       if {![file exists $path]} {
         return -code error "Produce $name: no file at '$path' - the stage claimed to have\

@@ -204,7 +204,25 @@ proc AddHogFiles {libraries properties filesets} {
             set_property file_type {Verilog} [get_files $f]
           }
 
-          # Not used in synthesis
+          # Change compilation order
+          if {[lsearch -inline -regexp $props "order_early"] >= 0} {
+            Msg Debug "Setting compilation order to EARLY for $f..."
+            set_property -name "processing_order" -value "early" -objects $file_obj
+          }
+
+          # Change compilation order
+          if {[lsearch -inline -regexp $props "order_normal"] >= 0} {
+            Msg Debug "Setting compilation order to NORMAL for $f..."
+            set_property -name "processing_order" -value "normal" -objects $file_obj
+          }
+	  
+		  # Change compilation order
+          if {[lsearch -inline -regexp $props "order_late"] >= 0} {
+            Msg Debug "Setting compilation order to LATE for $f..."
+            set_property -name "processing_order" -value "late" -objects $file_obj
+          }
+
+	      # Not used in synthesis
           if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
             Msg Debug "Setting not used in synthesis for $f..."
             set_property -name "used_in_synthesis" -value "false" -objects $file_obj
@@ -700,7 +718,7 @@ proc ALLOWED_PROPS {} {
     ".do" [list "nosim"] \
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
-    ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
+    ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells" "order_early" "order_normal" "order_late"] \
     ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd" \
       "--block-symbol-file" "--clear-output-directory" "--example-design" \
       "--export-qsys-script" "--family" "--greybox" "--ipxact" \

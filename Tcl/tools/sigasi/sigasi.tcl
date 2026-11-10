@@ -90,14 +90,14 @@ namespace eval Tools::Sigasi {
 
     Msg Info " retrieving the sigasi configuration settings "
     if { [Repo::Exists config  sigasi ] } {
-      set sigasi_dict [ ::tobj::native [ Repo::Get config sigasi ]]
+      set sigasi_dict [Repo::Get config sigasi]
       Msg Debug "debug merge 1 $sigasi_dict "
       set out_dict [dict merge $default_dict $sigasi_dict]
     }
 
     set config [ CurrentProject::Get config ]
     if { [  CurrentProject::Exists config  sigasi ] } {
-      set sigasi_dict [ ::tobj::native [ CurrentProject::Get config sigasi ]]
+      set sigasi_dict [CurrentProject::Get config sigasi]
       Msg Debug "debug merge 2 $sigasi_dict "
       set out_dict [dict merge $out_dict $sigasi_dict]
     }
@@ -114,7 +114,7 @@ namespace eval Tools::Sigasi {
     set project_name [Launcher::Get project_name]
     Msg Info "Creating Sigasi CSV files for project $project_name..."
 
-    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+    set project_files [CurrentProject::Get project_files]
     # puts " debug project_files $project_files"
 
     set csv_file [open "$repo_path/sigasi_$project_name.csv" w]
@@ -144,7 +144,7 @@ namespace eval Tools::Sigasi {
     set project_name [Launcher::Get project_name]
     Msg Info "Creating new style Sigasi project file for project $project_name..."
 
-    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+    set project_files [CurrentProject::Get project_files]
 
     DataStore::create Sigasi
     Sigasi::Set name $project_name
@@ -264,7 +264,7 @@ namespace eval Tools::Sigasi {
       }
     }
 
-    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+    set project_files [CurrentProject::Get project_files]
     # Msg Debug " debug project_files $project_files"
 
     foreach source_file $project_files {

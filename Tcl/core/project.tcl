@@ -238,6 +238,8 @@ namespace eval Projects {
     set symlinks [expr {[dict exists $args -symlinks] ? [dict get $args -symlinks] : 1}]
     set as       [expr {[dict exists $args -as]       ? [dict get $args -as]       : "objects"}]
 
+    # -as: objects (list of typed file objects, default), tdict (path -> typed
+    # file object), dict (path -> plain Tcl dict, for tool code), or paths.
     set result [expr {$as eq "tdict" ? [tdict create] : {}}]
     tdict for {fp hog_file} [tdict get $hog_project project_files] {
       if {$lib_pat ne ""} {
@@ -258,6 +260,8 @@ namespace eval Projects {
 
       if {$as eq "tdict"} {
         tdict set result $fp $hog_file
+      } elseif {$as eq "dict"} {
+        dict set result $fp [tnative $hog_file]
       } elseif {$as eq "objects"} {
         lappend result $hog_file
       } else {

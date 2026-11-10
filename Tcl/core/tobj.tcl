@@ -93,8 +93,10 @@ namespace eval tobj {
   #   Null          → {} (empty string)
   #   List          → Tcl list
   #   Dict          → Tcl dict
+  # A value that is not a tobj is returned unchanged, so calling this on what a
+  # getter already returned (always plain) is harmless.
   proc native {obj} {
-    if {![isobj $obj]} { error "tobj native: not a tobj" "" {INVALID_TOBJ} }
+    if {![isobj $obj]} { return $obj }
     switch [type $obj] {
       List    {
         set _r {}
@@ -172,13 +174,12 @@ namespace eval tlist {
     return [lindex [tobj value $lst] $index]
   }
 
+  # Element at index as a plain Tcl value (lists and dicts converted recursively).
+  # Use 'tlist get' for the typed object.
   proc getval {lst index} {
     if {![tobj isobj $lst]}         { error "tlist getval: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist getval: not a List node" "" {INVALID_TOBJ_LIST} }
-    set item [lindex [tobj value $lst] $index]
-    set t [tobj type $item]
-    if {$t eq "Dict" || $t eq "List"} { return $item }
-    return [tobj value $item]
+    return [tobj native [lindex [tobj value $lst] $index]]
   }
 
   proc length {lst} {
@@ -223,12 +224,13 @@ namespace eval tlist {
     }
   }
 
+  # Iterate with each element as a plain Tcl value (lists and dicts converted
+  # recursively). Use 'tlist foreach' for the typed objects.
   proc foreachval {itemVar lst body} {
     if {![tobj isobj $lst]}         { error "tlist foreachval: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist foreachval: not a List node" "" {INVALID_TOBJ_LIST} }
     ::foreach item [tobj value $lst] {
-      set _t [tobj type $item]
-      uplevel 1 [list set $itemVar [expr {$_t eq "Dict" || $_t eq "List" ? $item : [tobj value $item]}]]
+      uplevel 1 [list set $itemVar [tobj native $item]]
       ::set _tlv_code [catch {uplevel 1 $body} _tlv_res _tlv_opts]
       switch -- $_tlv_code {
         0 {}
@@ -328,11 +330,10 @@ namespace eval tdict {
     return [_getPath $d $args]
   }
 
+  # Value at key path as a plain Tcl value (lists and dicts converted
+  # recursively). Use 'tdict get' / 'tdict getobjor' for the typed object.
   proc getval {d args} {
-    ::set obj [get $d {*}$args]
-    ::set t [tobj type $obj]
-    if {$t eq "Dict" || $t eq "List"} { return $obj }
-    return [tobj value $obj]
+    return [tobj native [get $d {*}$args]]
   }
 
   # tdict getor dict key ?key ...? default

@@ -230,10 +230,10 @@ namespace eval Tools::Vivado {
       set stragety_str "STRATEGY strategy Strategy"
       Msg Debug "Setting Strategy and Flow for run $run (if specified in hog.conf)"
       foreach s $stragety_str {
-        if {[tdict exists $run_props $s]} {
-          set prop [tdict getval $run_props $s]
+        if {[dict exists $run_props $s]} {
+          set prop [dict get $run_props $s]
           set_property -name $s -value $prop -objects $run
-          set run_props [tdict remove $run_props $s]
+          set run_props [dict remove $run_props $s]
           Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. \
           Please regenerate your hog.conf file using the dedicated Hog button."
           Msg Info "Setting $s = $prop"
@@ -285,7 +285,7 @@ namespace eval Tools::Vivado {
     if {[get_filesets -quiet constrs_1] eq ""} { create_fileset -constrset constrs_1 }
 
     # Create any non-standard filesets (simulation sets).
-    tlist foreachval fs [CurrentProject::Get filesets] {
+    foreach fs [CurrentProject::Get filesets] {
       if {$fs in {sources_1 constrs_1}} { continue }
       if {[get_filesets -quiet $fs] eq ""} {
         create_fileset -simset $fs
@@ -303,24 +303,30 @@ namespace eval Tools::Vivado {
     set proj_ds [CurrentProject::GetProjectObj]
 
     Msg Info "Modifying Added Files"
-    tlist foreachval fs [CurrentProject::Get filesets] {
+    foreach fs [CurrentProject::Get filesets] {
       # Get all files for this fileset, excluding Vitis app libraries.
-      set all_fs [Projects::GetProjectFiles $proj_ds -fileset "^${fs}$" -as tdict]
-      set all_fs [ListFile::HogFileObj::Filter $all_fs -library {^(?!app_)}]
+      set all_fs [Projects::GetProjectFiles $proj_ds -fileset "^${fs}$" -library {^(?!app_)} -as dict]
 
-      if {[llength [tdict keys $all_fs]] == 0} { continue }
+      if {[dict size $all_fs] == 0} { continue }
 
       # Batch-add paths: regular sources first, IPs last (tool dependency order).
-      set regular  [ListFile::HogFileObj::Filter $all_fs -library {^(?!ips\.src$)}]
-      set ip_files [ListFile::HogFileObj::Filter $all_fs -library {^ips\.src$}]
-      puts "Adding [llength [tdict keys $all_fs]] files and [llength [tdict keys $ip_files]] IPs to fileset $fs"
-      add_files -norecurse -fileset $fs [concat [tdict keys $regular] [tdict keys $ip_files]]
+      # A file counts as regular if any of its libraries is not ips.src, and as an
+      # IP if any of them is.
+      set regular  {}
+      set ip_files {}
+      dict for {path fobj} $all_fs {
+        set libs [dict get $fobj libraries]
+        if {[lsearch -exact -not $libs ips.src] >= 0} { lappend regular  $path }
+        if {"ips.src" in $libs}                      { lappend ip_files $path }
+      }
+      puts "Adding [dict size $all_fs] files and [llength $ip_files] IPs to fileset $fs"
+      add_files -norecurse -fileset $fs [concat $regular $ip_files]
 
 
       # Apply per-file properties.
-      tdict for {path fobj} $all_fs {
-        set ext     [tdict getval $fobj ext]
-        set lib     [tlist getval [tdict get $fobj libraries] 0]
+      dict for {path fobj} $all_fs {
+        set ext     [dict get $fobj ext]
+        set lib     [lindex [dict get $fobj libraries] 0]
         set rootlib [file rootname [file tail $lib]]
         set file_obj [get_files -of_objects [get_filesets $fs] [list "*$path"]]
 
@@ -333,8 +339,7 @@ namespace eval Tools::Vivado {
           generate_target all [get_files $path]
         }
 
-        tdict for {key val} [tdict get $fobj props] {
-          set v [tnative $val]
+        dict for {key v} [dict get $fobj props] {
           switch -- $key {
             std {
               if {$ext in {.vhd .vhdl}} {
@@ -903,9 +908,9 @@ namespace eval Tools::Vivado {
     Msg Info "Generating bitstream..."
 
     puts "Current Flow state:"
-    puts "[tobj tojson $FlowControl::_state -pretty]"
+    puts [FlowControl::ToJson -pretty]
     puts "Datastores:"
-    puts "[tobj tojson [DataStore::Serialize] -pretty]"
+    puts [DataStore::ToJson -pretty]
   }
 
   proc Simulate {} {

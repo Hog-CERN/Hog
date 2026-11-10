@@ -35,9 +35,7 @@ namespace eval Commands {
   # Read these instead of $::argv: an inline Hog::Do has no private argv, and
   # argv indices shift whenever the command path changes length.
   proc Args {} {
-    set _a [Launcher::GetOr args {}]
-    if {$_a eq {}} { return {} }
-    return [tnative $_a]
+    return [Launcher::GetOr args {}]
   }
 
   # Safe indexed accessor - out-of-range yields $default rather than an error.
@@ -296,8 +294,7 @@ namespace eval Commands {
     tdict set node source_path [tstr $source]
 
     set name $bare_name
-    set aliases {}
-    tlist foreachval a [tdict getval $node aliases] { lappend aliases $a }
+    set aliases [tdict getval $node aliases]
 
     dict set nodes $canon $node
 
@@ -386,7 +383,7 @@ namespace eval Commands {
 
     # Filter conflicting aliases before registering (scoped to the same parent)
     set clean {}
-    tlist foreachval a [tdict getval $node aliases] {
+    foreach a [tdict getval $node aliases] {
       set a_existing [expr {$parent eq "" ? [_canon $a] : [_canon_child $parent $a]}]
       if {$parent eq "" && [set why [_veto $a]] ne ""} {
         Msg Warning "Alias '$a' for '$name' rejected: $why"
@@ -475,7 +472,7 @@ namespace eval Commands {
       if {$k ne $canon && [dict get $alias_index $k] eq $canon} { dict unset alias_index $k }
     }
     set clean {}
-    tlist foreachval a [tdict getval $node aliases] {
+    foreach a [tdict getval $node aliases] {
       set a_existing [expr {$parent eq "" ? [_canon $a] : [_canon_child $parent $a]}]
       if {[set why [_veto $a]] ne ""} {
         Msg Warning "Alias '$a' for '$bare' rejected: $why"
@@ -1053,11 +1050,8 @@ namespace eval Commands {
     foreach k [array names _parsed] { tdict set _t $k [tinf $_parsed($k)] }
     # Set the presets here independently from the parsed options
     if {$node ne ""} {
-      if {[tdict exists $node presets]} {
-        set presets [tnative [tdict getval $node presets]]
-        foreach {k v} $presets {
-          tdict set _t $k [tinf $v]
-        }
+      foreach {k v} [tdict getor $node presets {}] {
+        tdict set _t $k [tinf $v]
       }
     }
 

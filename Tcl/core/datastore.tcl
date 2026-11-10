@@ -89,14 +89,13 @@ namespace eval DataStore {
         return $defaultObj
       }
 
+      # Get/GetOr return plain Tcl values: lists and dicts are converted
+      # recursively. Use GetObj/GetObjOr for the typed object.
       proc Get {args} {
         if {[llength $args] < 1} { error "@DS@::Get: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
         if {![tdict exists $_ctx {*}$args]} { error "@DS@::Get: key not found: $args" "" {CTX_NOT_FOUND} }
-        set _node [tdict get $_ctx {*}$args]
-        set _type [tobj type $_node]
-        if {$_type eq "Dict" || $_type eq "List"} { return $_node }
-        return [tobj value $_node]
+        return [tobj native [tdict get $_ctx {*}$args]]
       }
 
       proc GetOr {args} {
@@ -105,10 +104,7 @@ namespace eval DataStore {
         set keys [lrange $args 0 end-1]
         set defaultObj [lindex $args end]
         if {[tdict exists $_ctx {*}$keys]} {
-          set _node [tdict get $_ctx {*}$keys]
-          set _type [tobj type $_node]
-          if {$_type eq "Dict" || $_type eq "List"} { return $_node }
-          return [tobj value $_node]
+          return [tobj native [tdict get $_ctx {*}$keys]]
         }
         return $defaultObj
       }
@@ -213,6 +209,12 @@ namespace eval DataStore {
       }
     }
     return $root
+  }
+
+  # Every store as JSON (debugging / API output).
+  proc ToJson {{flag {}}} {
+    if {$flag eq "-pretty"} { return [tobj tojson [Serialize] -pretty] }
+    return [tobj tojson [Serialize]]
   }
 
   proc Deserialize {tDictRoot} {

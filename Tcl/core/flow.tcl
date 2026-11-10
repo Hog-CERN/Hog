@@ -125,6 +125,13 @@ namespace eval FlowControl {
   }
   variable _i 0
 
+  # The flow state (stages, tokens, status) as JSON (debugging / API output).
+  proc ToJson {{flag {}}} {
+    variable _state
+    if {$flag eq "-pretty"} { return [tobj tojson $_state -pretty] }
+    return [tobj tojson $_state]
+  }
+
   proc _stages {} {
     variable _state
     set r {}

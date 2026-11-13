@@ -37,7 +37,6 @@ HOG_SILENT_SIM=1
 # Alternatively, add wcfg_vcd.tcl and custom_do_wcfg_vcd.tcl to this simulation
 # set, then set XSIM.SIMULATE.CUSTOM_DO=custom_do_wcfg_vcd.tcl explicitly.
 # Optional user hooks are Top/<project>/pre-simulation.tcl and post-simulation.tcl.
-# Per-simulation-set hooks use pre-simulation_<simset>.tcl and post-simulation_<simset>.tcl.
 [generics]
 # Simulation generics
 test_generic_1=1

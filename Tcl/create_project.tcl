@@ -566,6 +566,81 @@ proc ConfigureSimulation {} {
           }
         }
       }
+
+      # Generate opt-in XSim VCD hooks while the simulation set is created,
+      # after its user properties have been applied.
+      set hog_sim_props [DictGet $sim_dict "hog"]
+      set use_xsim_wcfg_vcd 0
+      dict for {prop_name prop_val} $hog_sim_props {
+        if {[string toupper $prop_name] == "HOG_XSIM_WCFG_VCD" && $prop_val == 1} {
+          set use_xsim_wcfg_vcd 1
+        }
+      }
+      if {[IsVivado] && $use_xsim_wcfg_vcd == 1} {
+        set simulator [string tolower [DictGet $sim_dict "simulator"]]
+        if {$simulator ne "xsim"} {
+          Msg Warning "HOG_XSIM_WCFG_VCD is enabled for $simset, but its simulator is $simulator"
+          continue
+        }
+
+        set runtime [get_property XSIM.SIMULATE.RUNTIME [get_filesets $simset]]
+        if {$runtime eq ""} {
+          Msg Error "XSIM.SIMULATE.RUNTIME must be set when HOG_XSIM_WCFG_VCD is enabled for $simset"
+          continue
+        }
+        set user_custom_do [file tail [get_property XSIM.SIMULATE.CUSTOM_DO [get_filesets $simset]]]
+        set user_pre_simulation [file normalize "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/pre-simulation.tcl"]
+        set user_post_simulation [file normalize "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/post-simulation.tcl"]
+        set templates_available 1
+        foreach template_name {xsim-pre-simulation.tcl.in xsim-post-simulation.tcl.in xsim-simulation.tcl.in} {
+          set template [file normalize "$globalSettings::repo_path/Hog/Tcl/integrated/$template_name"]
+          if {![file exists $template]} {
+            Msg Error "XSim simulation template is missing: $template"
+            set templates_available 0
+          }
+        }
+        if {!$templates_available} {
+          continue
+        }
+
+        set generated_dir [file normalize "$globalSettings::build_dir/.hog/simulation/$simset"]
+        set generated_pre "$generated_dir/${simset}_pre_simulation.tcl"
+        set generated_post "$generated_dir/${simset}_post_simulation.tcl"
+        set generated_do "$generated_dir/${simset}_simulation.tcl"
+        file mkdir $generated_dir
+        set user_pre_name ""
+        if {[file exists $user_pre_simulation]} {
+          set user_pre_name [file tail $user_pre_simulation]
+        }
+        set user_post_name ""
+        if {[file exists $user_post_simulation]} {
+          set user_post_name [file tail $user_post_simulation]
+        }
+        set pre_replacements [list @VCD_FILE@ "$simset.vcd" @USER_PRE_SIMULATION@ $user_pre_name @USER_CUSTOM_DO@ $user_custom_do]
+        set post_replacements [list @USER_POST_SIMULATION@ $user_post_name]
+        set simulation_replacements [list @PRE_SIMULATION@ [file tail $generated_pre] @RUNTIME@ $runtime @POST_SIMULATION@ [file tail $generated_post]]
+        foreach {template_name generated_file replacements} [list \
+          xsim-pre-simulation.tcl.in $generated_pre $pre_replacements \
+          xsim-post-simulation.tcl.in $generated_post $post_replacements \
+          xsim-simulation.tcl.in $generated_do $simulation_replacements] {
+          set template_id [open "$globalSettings::repo_path/Hog/Tcl/integrated/$template_name" r]
+          set template_contents [read $template_id]
+          close $template_id
+          set generated_id [open $generated_file w]
+          puts -nonewline $generated_id [string map $replacements $template_contents]
+          close $generated_id
+          AddFile $generated_file [get_filesets $simset]
+        }
+        foreach user_hook [list $user_pre_simulation $user_post_simulation] {
+          if {[file exists $user_hook]} {
+            AddFile $user_hook [get_filesets $simset]
+          }
+        }
+
+        set_property XSIM.SIMULATE.RUNTIME 0ns [get_filesets $simset]
+        set_property XSIM.SIMULATE.CUSTOM_DO [file tail $generated_do] [get_filesets $simset]
+        Msg Info "Configured project-level WCFG-selected XSim VCD hooks for $simset"
+      }
     }
   }
 }

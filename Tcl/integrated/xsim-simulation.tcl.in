@@ -1,0 +1,6 @@
+# Generated XSim simulation orchestrator. The individual hooks are generated
+# during Hog project creation and exported with the simulation fileset.
+source @PRE_SIMULATION@
+run @RUNTIME@
+source @POST_SIMULATION@
+quit

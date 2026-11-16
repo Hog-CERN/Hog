@@ -18,6 +18,8 @@
 # The post bitstream script copies binary files, reports and other files to the bin directory in your repository.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+# Libero sources this script inside a procedure: use the global variables.
+global env auto_path
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -138,18 +140,18 @@ if {[IsXilinx]} {
   #source and probes file
   set spf_file [file normalize "$proj_dir/output_files/$proj_name.spf"]
 } elseif {[IsLibero]} {
-  # Libero
-  ##nagelfar ignore Unknown variable
-  set proj_name $project
-  ##nagelfar ignore Unknown variable
-  set proj_dir $main_folder
-  set map_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.map"] 0]]
+  # Libero: sourced by GenerateBitstream, which provides run_folder.
+  set proj_dir [file normalize $run_folder]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
   set sap_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.sap"] 0]]
   set srd_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srd"] 0]]
   set srm_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srm"] 0]]
   set srs_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srs"] 0]]
   set srr_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srr"] 0]]
   set top_name [file rootname [file tail $srr_file]]
+  # Programming data written by GENERATEPROGRAMMINGDATA.
+  set map_file [file normalize "$proj_dir/designer/$top_name/$top_name.map"]
   set stxt_files [glob -nocomplain "$proj_dir/synthesis/*.txt"]
   set scsv_files [glob -nocomplain "$proj_dir/synthesis/*.csv"]
   set slog_files [glob -nocomplain "$proj_dir/synthesis/*.log"]
@@ -350,7 +352,7 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   if {[file exists $srm_file]} {
     Msg Info "Copying srm file $srm_file into $dst_srm..."
-    file copy -force $srm_file $dst_map
+    file copy -force $srm_file $dst_srm
   }
 
   if {[file exists $srs_file]} {
@@ -364,23 +366,13 @@ if {[IsXilinx] && [file exists $main_file]} {
   }
 
 
-  Msg Info "Copying synth txt files $stxt_files into $dst_rpt..."
-  file copy -force {*}$stxt_files $dst_rpt
-  Msg Info "Copying synth csv files $scsv_files into $dst_rpt..."
-  file copy -force {*}$scsv_files $dst_rpt
-  Msg Info "Copying synth log files $slog_files into $dst_rpt..."
-  file copy -force {*}$slog_files $dst_rpt
-  Msg Info "Copying synth rpt files $srpt_files into $dst_rpt..."
-  file copy -force {*}$srpt_files $dst_rpt
-
-  Msg Info "Copying impl txt files $dtxt_files into $dst_rpt..."
-  file copy -force {*}$dtxt_files $dst_rpt
-  Msg Info "Copying impl csv files $dcsv_files into $dst_rpt..."
-  file copy -force {*}$dcsv_files $dst_rpt
-  Msg Info "Copying impl log files $dlog_files into $dst_rpt..."
-  file copy -force {*}$dlog_files $dst_rpt
-  Msg Info "Copying impl rpt files $drpt_files into $dst_rpt..."
-  file copy -force {*}$drpt_files $dst_rpt
+  # One file at a time: "file copy {*}$list" fails when a list is empty.
+  set reports [concat $stxt_files $scsv_files $slog_files $srpt_files \
+    $dtxt_files $dcsv_files $dlog_files $drpt_files]
+  Msg Info "Copying [llength $reports] synthesis and implementation reports into $dst_rpt..."
+  foreach report $reports {
+    file copy -force $report $dst_rpt
+  }
 } elseif {[IsDiamond]} {
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.bit"]
   Msg Info "Copying main binary file $main_file.bit into $dst_main..."

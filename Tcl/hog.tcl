@@ -6336,16 +6336,16 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       Msg Info "PLACEROUTE PASSED."
     }
 
+    #Go to repository path
+    cd $repo_path
+
     # Check timing
     Msg Info "Run VERIFYTIMING ..."
-    if {[catch {run_tool -name {VERIFYTIMING} -script {Hog/Tcl/integrated/libero_timing.tcl}}]} {
+    if {[catch {run_tool -name {VERIFYTIMING} -script [file normalize "$repo_path/Hog/Tcl/integrated/libero_timing.tcl"]}]} {
       Msg CriticalWarning "VERIFYTIMING FAILED!"
     } else {
       Msg Info "VERIFYTIMING PASSED \n"
     }
-
-    #Go to repository path
-    cd $repo_path
 
     set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"

@@ -8193,6 +8193,8 @@ proc ReadListFile {args} {
             } elseif {[IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}]} {
               # Adding Vitis library
               set lib_name "$library$list_file_ext"
+            } elseif {[IsLibero] && $list_file_ext == ".src"} {
+              set lib_name "$library.src"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)
               set lib_name "others.src"

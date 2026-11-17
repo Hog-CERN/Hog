@@ -3982,6 +3982,7 @@ proc GetProjectFiles {{project_file ""}} {
         # lappend source_files [remove_after_comma $filepath]
         # set file_path ""
         lassign [split $value ,] file_path file_type
+        set file_path [file normalize $file_path]
         # Extract file properties
         set parent_file ""
         set library "others"

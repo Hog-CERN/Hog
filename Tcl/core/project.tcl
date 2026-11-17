@@ -10,7 +10,7 @@
 #   top_name         tstr  - file rootname of project tail
 #   synth_top_module tstr  - conventional RTL top ("top_<top_name>")
 #   config           tdict - hog.conf sections (ide, parameters, generics…)
-#   list_files       tlist - absolute paths to .src/.sim/.con/.ipb files
+#   list_files       tlist - absolute paths to .src/.sim/.con/.ipb/.chb files
 #   libraries        tlist - union of all library names across parsed files
 #   filesets         tlist - union of all fileset names
 #   project_files    tdict - path -> HogFileObj for every parsed source file
@@ -97,7 +97,7 @@ namespace eval Projects {
 
     foreach list_file [lsort [glob -nocomplain -directory $list_path "*"]] {
       set ext [file extension $list_file]
-      if {$ext ni {.src .con .sim .ext .ipb}} { continue }
+      if {$ext ni {.src .con .sim .ext .ipb .chb}} { continue }
       if {$ext eq ".ext" && $ext_path eq ""} {
         Msg Warning "Skipping $list_file: no ext_path provided."
         continue

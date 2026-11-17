@@ -7,7 +7,8 @@
 #   <input.cheby>  <output1> [<output2> ...]  [key=value ...]
 #
 #   - <input.cheby>  : path to the cheby description file, relative to the
-#                      repository root.
+#                      repository root. A .yaml or .yml extension is accepted
+#                      as well.
 #   - <outputN>      : one or more expected output artefacts (HDL, headers,
 #                      docs, ...). Their order matches the comma-separated
 #                      list given via `gen=<...>`. When `gen=` is omitted,
@@ -42,13 +43,13 @@
 #
 # Lines beginning with `#` and blank lines are ignored.
 #
-# Hog tracks all `.cheby` source files referenced from any `.chb` list file
+# Hog tracks all cheby source files referenced from any `.chb` list file
 # of a project under the `cheby.chb` library, and exposes the corresponding
 # Git SHA / version through the `CHEBY_SHA` / `CHEBY_VER` generics
 # (or Quartus parameters), in addition to listing them in `versions.txt`.
 #
-# Use `Hog/Do cheby <project>` to verify that the on-disk artefacts match
-# what cheby would generate, and `Hog/Do cheby <project> -generate` to
+# Use `Hog/Do CHEBY <project>` to verify that the on-disk artefacts match
+# what cheby would generate, and `Hog/Do CHEBY <project> -generate` to
 # regenerate them in place. Pass `-strict` in CI to upgrade any mismatch
 # to an error, `-profile <name>` to restrict the action to a subset of
 # lines, and `-tool <path>` to use a specific cheby executable.

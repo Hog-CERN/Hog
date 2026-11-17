@@ -13,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-## @file cheby.tcl
+## @file cheby_lib.tcl
 # Cheby register-map support.
 #
 # The `Cheby` namespace holds everything needed to turn the lines of a `.chb`

@@ -22,7 +22,7 @@ if {![info exists tcl_path]} {
 set hog_path [file normalize "[file dirname [info script]]"]
 
 source "$hog_path/utils/Logger.tcl"
-source "$hog_path/utils/cheby.tcl"
+source "$hog_path/utils/cheby_lib.tcl"
 
 
 #### GLOBAL CONSTANTS

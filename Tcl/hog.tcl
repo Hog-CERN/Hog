@@ -4199,7 +4199,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   cd $repo_path
 
   # Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [GetSHA {Hog}]
+  lappend SHAs [GetSHA [list "$repo_path/Hog"]]
   lappend versions [GetVerFromSHA $SHAs $repo_path]
 
   cd "$repo_path/Hog"
@@ -4547,7 +4547,8 @@ proc GetSHA {{path ""}} {
 
       foreach mod $submodules {
         set module [lindex $mod 1]
-        if {[string first "$repo_path/$module" $f] == 0} {
+        if {$f eq "$repo_path/$module" ||
+            [string first "$repo_path/$module/" $f] == 0} {
           # File is in a submodule. Append
           set file_in_module 1
           lappend paths "$module"

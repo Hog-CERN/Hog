@@ -285,9 +285,10 @@ namespace eval Tools::Vivado {
 
     Msg Info "Modifying Added Files"
     tlist foreachval fs [CurrentProject::Get filesets] {
-      # Get all files for this fileset, excluding Vitis app libraries.
+      # Get all files for this fileset, excluding Vitis app libraries and the
+      # register-map descriptions, which Hog only tracks for SHA and version.
       set all_fs [Projects::GetProjectFiles $proj_ds -fileset "^${fs}$" -as tdict]
-      set all_fs [ListFile::HogFileObj::Filter $all_fs -library {^(?!app_)}]
+      set all_fs [ListFile::HogFileObj::Filter $all_fs -library {^(?!app_|xml\.ipb$|cheby\.chb$)}]
 
       if {[llength [tdict keys $all_fs]] == 0} { continue }
 

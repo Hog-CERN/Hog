@@ -13,6 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Load the Cheby engine here, so the decoupled flow does not depend on the
+# legacy Tcl/hog.tcl to provide it. Sourcing it twice is harmless.
+source [file join [file dirname [file dirname [file normalize [info script]]]] utils cheby.tcl]
+
 Commands::RegisterCommand CHEBY {
   aliases     {CHB}
   description "Check or regenerate the Cheby register-map artefacts declared in the project .chb list files."

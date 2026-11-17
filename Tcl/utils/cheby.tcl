@@ -296,6 +296,21 @@ namespace eval Cheby {
   }
 
 
+  ## @brief Return the value of a key in a dict, or a default if it is missing.
+  #
+  # Private copy of the DictGet in hog.tcl, so this file does not depend on it.
+  #
+  # @param[in] d        The dictionary.
+  # @param[in] key      The key to look up.
+  # @param[in] default  Value returned when @a key is not in @a d.
+  proc _DictGet {d key {default ""}} {
+    if {[dict exists $d $key]} {
+      return [dict get $d $key]
+    }
+    return $default
+  }
+
+
   ## @brief Run an external command using the user's shell environment.
   #
   # Inside Vivado, `exec` routes Python scripts through Vivado's own bundled
@@ -467,13 +482,13 @@ PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
   #
   # @return               The number of errors encountered, 0 on success.
   proc Process {entries repo_path dst args} {
-    set generate [DictGet $args -generate 0]
-    set profile  [DictGet $args -profile "all"]
-    set tool     [GetTool [DictGet $args -tool ""]]
-    set strict   [DictGet $args -strict 0]
-    set verbose  [DictGet $args -verbose 0]
-    set version  [DictGet $args -version ""]
-    set sha      [DictGet $args -sha ""]
+    set generate [_DictGet $args -generate 0]
+    set profile  [_DictGet $args -profile "all"]
+    set tool     [GetTool [_DictGet $args -tool ""]]
+    set strict   [_DictGet $args -strict 0]
+    set verbose  [_DictGet $args -verbose 0]
+    set version  [_DictGet $args -version ""]
+    set sha      [_DictGet $args -sha ""]
 
     if {[llength $entries] == 0} {
       Msg CriticalWarning "No cheby register map declared, nothing to do."
@@ -514,7 +529,7 @@ PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
       set props   [dict get $entry props]
       set origin  [dict get $entry origin]
 
-      set line_profile [DictGet $props "profile" "all"]
+      set line_profile [_DictGet $props "profile" "all"]
       if {$profile ne "all" && $line_profile ne "all" && $line_profile ne $profile} {
         if {$verbose} {
           Msg Info "  Skipping $origin (profile='$line_profile')"

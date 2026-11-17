@@ -13,8 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Load the Cheby engine here, so the decoupled flow does not depend on the
-# legacy Tcl/hog.tcl to provide it. Sourcing it twice is harmless.
+# Load the logger and the Cheby engine here, so the decoupled flow does not
+# depend on the legacy Tcl/hog.tcl to provide them.
+# Logger.tcl resets DEBUG_MODE and the HogEnv.conf settings when sourced, so
+# only load it if no one did yet. Sourcing cheby.tcl twice is harmless.
+if {[info commands ::Msg] eq ""} {
+  source [file join [file dirname [file dirname [file normalize [info script]]]] utils Logger.tcl]
+}
 source [file join [file dirname [file dirname [file normalize [info script]]]] utils cheby.tcl]
 
 Commands::RegisterCommand CHEBY {

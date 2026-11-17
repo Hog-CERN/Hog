@@ -18,12 +18,12 @@ Commands::RegisterCommand CHEBY {
   description "Check or regenerate the Cheby register-map artefacts declared in the project .chb list files."
   requires_proj true
   options {
-    {generate      "Overwrite the artefacts on disk instead of only checking them."}
-    {dst_dir.arg "" "Destination folder for the traceability copies (default is in the ./bin folder)."}
+    {generate          "Overwrite the artefacts on disk instead of only checking them."}
+    {dst_dir.arg ""    "Destination folder for the traceability copies (default is in the ./bin folder)."}
     {profile.arg "all" "Only process the .chb lines whose profile= property matches, e.g. hdl, sw, doc."}
-    {tool.arg    "" "Path to the cheby executable. Defaults to \$HOG_CHEBY_TOOL, then to cheby from PATH."}
-    {strict        "Report any mismatch or missing artefact as an error rather than a critical warning."}
-    {verbose       "If set, launch the script in verbose mode."}
+    {tool.arg    ""    "Path to the cheby executable. Defaults to \$HOG_CHEBY_TOOL, then to cheby from PATH."}
+    {strict            "Report any mismatch or missing artefact as an error rather than a critical warning."}
+    {verbose           "If set, launch the script in verbose mode."}
   }
   script {
     if {[Launcher::GetOr options verbose 0]} {

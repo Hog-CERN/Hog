@@ -395,13 +395,10 @@ PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
       }
 
       set input_rel [lindex $tokens 0]
-      lappend entries [dict create \
-        input     [file normalize [file join $repo_path $input_rel]] \
-        input_rel $input_rel \
-        outputs   $outputs \
-        props     $props \
-        origin    "[file tail $chb_file]:$line_num" \
-      ]
+      set input     [file normalize [file join $repo_path $input_rel]]
+      set origin    [file tail $chb_file]:$line_num
+      lappend entries [dict create input $input input_rel $input_rel \
+                         outputs $outputs props $props origin $origin]
     }
     return $entries
   }

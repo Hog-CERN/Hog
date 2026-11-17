@@ -269,12 +269,8 @@ if {$cheby_hash != ""} {
   Msg Info "Creating Cheby directory $cheby_dst..."
   file mkdir $cheby_dst
   Msg Info "Verifying Cheby outputs against the .chb list files..."
-  set cheby_tool "cheby"
-  if {[info exists env(HOG_CHEBY_TOOL)]} {
-    set cheby_tool $env(HOG_CHEBY_TOOL)
-  }
-  CopyChebyFiles ./Top/$group/$proj_name/ $repo_path $cheby_dst \
-    [HexVersionToString $cheby_ver] $cheby_hash 0 "all" $cheby_tool 0 0
+  Cheby::Process [Cheby::EntriesFromListFiles [file normalize ./Top/$group/$proj_name] $repo_path] \
+    $repo_path $cheby_dst -version [HexVersionToString $cheby_ver] -sha $cheby_hash
   set use_cheby 1
 } else {
   set use_cheby 0

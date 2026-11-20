@@ -71,7 +71,7 @@ function HogPrint() {
 }
 
 function HogVer() {
-  if [[ -v "HOG_VERSION_CHECKED" && $HOG_VERSION_CHECKED == 1  ]]; then
+  if [[ -v "CHECK_FOR_HOG_UPDATES" && $CHECK_FOR_HOG_UPDATES == 1  ]]; then
     return 0
   fi
 
@@ -110,7 +110,7 @@ function HogVer() {
     fi
 
   fi
-  export HOG_VERSION_CHECKED=1
+  export CHECK_FOR_HOG_UPDATES=1
   cd ${OLDPWD} || exit >> /dev/null
 }
 

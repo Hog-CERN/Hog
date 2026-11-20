@@ -1250,6 +1250,7 @@ proc CheckExtraFiles {libraries constraints simlibraries} {
 
 # @brief Check if the running Hog version is the latest stable release
 #
+# Todo - remove in favour of HogVer in HogPrint.sh
 # @param[in] repo_path The main path of the git repository
 proc CheckLatestHogRelease {{repo_path .}} {
   if {[info exists ::env(CHECK_FOR_HOG_UPDATES)] && $::env(CHECK_FOR_HOG_UPDATES) eq "0"} {

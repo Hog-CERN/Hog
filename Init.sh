@@ -240,7 +240,8 @@ function HogInitFunc(){
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
-  print_hog "$(dirname "$0")"
+  HogPrint "$(dirname "$0")"
+  HogVer "$(dirname "$0")"
   init "$@"
 fi
 

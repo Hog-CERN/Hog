@@ -51,7 +51,8 @@ before_script:
     fi
   - git submodule update --init Hog || ':'
   - source Hog/Other/HogPrint.sh || ':'
-  - print_hog Hog/ || ':'
+  - HogPrint Hog/ || ':'
+  - HogVer Hog/ || ':'
 
 stages:
   - check

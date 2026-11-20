@@ -69,6 +69,101 @@ function print_hog() {
   return 0
 }
 
+# @fn print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function print_log_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "Missing input! Got: $1!"
+    return 1
+  fi
+  logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      if [[ "$line" == *"Version:"* ]]; then
+        version_str="Version: $HOG_VERSION"
+        version_len=${#HOG_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        # Pad or trim to match original line length
+        echo -e "$line"
+      else
+        echo -e "$line"
+      fi
+
+    done < "$logo_file"
+
+    export HOG_LOGO_PRINTED=1
+  else
+    Msg Warning "Logo file $logo_file doesn't exist"
+  fi
+  return 0
+}
+
+# @fn new_print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function new_print_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+  cd "$1"
+  HOG_GIT_VERSION=$(git describe --always)
+  while IFS= read -r line; do
+    echo -e "$line"
+  done < ./images/hog_logo_color.txt
+  echo
+  echo " Version: ${HOG_GIT_VERSION}"
+  echo
+  echo "***************************************************"
+  cd "${OLDPWD}" || exit >> /dev/null
+  return 0
+}
+
+## @function print_hog_logo()
+  #
+  # @brief prints the logo
+  #
+function print_hog_logo () {
+  cd $ROOT_REPO_FOLDER/Hog
+  HOG_VERSION=$(git describe --always)
+  cd $ROOT_REPO_FOLDER
+  if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
+    if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_full_color.txt
+    else
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_color.txt
+    fi
+  else
+    logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo.txt
+  fi
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      if [[ "$line" == *"Version:"* ]]; then
+        version_str="Version: $HOG_VERSION"
+        version_len=${#HOG_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        # Pad or trim to match original line length
+        echo -e "$line"
+      else
+        echo -e "$line"
+      fi
+    done < "$logo_file"
+    echo ""
+    echo "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
+    sleep 1
+    echo ""
+    export HOG_LOGO_PRINTED=1
+  else
+    Msg Warning "Logo file $logo_file doesn't exist"
+  fi
+}
+
+
 function HogVer() {
   echo "Info: Checking the latest available Hog version..."
   if ! check_command timeout

@@ -245,7 +245,7 @@ artifacts_and_release:
           echo "Hog-CI(info) -  Will not upload zip file to the release page...";
         fi;
       fi;
-  allow_failure: true
+  allow_failure: false
   artifacts:
     paths:
       - Doc
@@ -303,16 +303,7 @@ archive_binary_files:
             echo "defined.";
           fi;
           if command -v kinit &> /dev/null; then
-            KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
-            until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-              KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
-              if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
-                echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
-                export ENABLE_EOS=0;
-                break;
-              fi;
-              echo "Retrying"; sleep 2;
-            done;
+            kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo "Exiting due to kinit authentication failure"; exit 1
           fi;
         fi;
       else
@@ -384,7 +375,7 @@ archive_binary_files:
         echo "[HOG-ERROR] Some artifacts were not copied. Please check your configuration and try again.";
         exit 1;
       fi;
-  allow_failure: true
+  allow_failure: false
   artifacts:
     paths:
       - bin

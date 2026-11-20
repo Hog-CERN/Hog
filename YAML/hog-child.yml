@@ -118,16 +118,7 @@
         if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
           if [ "$ENABLE_EOS" -eq 1 ]; then
             if command -v kinit &> /dev/null; then
-              KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
-              until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-                KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
-                if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
-                  echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
-                  export ENABLE_EOS=0;
-                  break;
-                fi;
-                echo "Retrying"; sleep 2;
-              done;
+              kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo "kinit authentication failure"; export ENABLE_EOS=0;
             else
               echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
               export ENABLE_EOS=0;
@@ -222,16 +213,7 @@
         if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
           if [ "$ENABLE_EOS" -eq 1 ]; then
             if command -v kinit &> /dev/null; then
-              KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
-              until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-                KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
-                if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
-                  echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
-                  export ENABLE_EOS=0;
-                  break;
-                fi;
-                echo "Retrying"; sleep 2;
-              done;
+              kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo "kinit authentication failure"; export ENABLE_EOS=0;
             else
               echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
               export ENABLE_EOS=0;
@@ -284,7 +266,7 @@
       fi;
     - if [ -f "$HOG_APPTAINER_IMAGE" ]; then
         if [ "$ENABLE_EOS" = "1" ]; then
-          FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
+          FULL_CMD="kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
         else
           FULL_CMD="$EXEC_CMD";
         fi;
@@ -435,11 +417,13 @@ check-timing:
         echo "The following projects have failed timing:$FAILED_PRJS";
         mr_msg="The following projects have failed timing:$FAILED_PRJS";
         glab mr note $CI_MERGE_REQUEST_IID -m "$mr_msg";
-        exit 1;
+        if [ -n "$HOG_FAIL_TIMING" ] && [ "$HOG_FAIL_TIMING" = '1' ]; then
+          exit 1;
+        fi;
       else
         echo "All projects met timing. All good!";
       fi;
-  allow_failure: true
+  allow_failure: false
 
 
 .sigasi_lint: &sigasi_lint

@@ -163,7 +163,7 @@ jobs:
           fi
           if [[ $BIN_PATH == /eos/* ]]; then
             if command -v kinit &> /dev/null; then
-              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo "kinit authentication failure"
             else
               echo "kinit command not found. Skipping kinit step.";
             fi;

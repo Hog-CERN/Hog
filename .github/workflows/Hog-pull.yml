@@ -327,7 +327,7 @@ jobs:
                   echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
                   if [[ $HOG_IP_PATH = /eos/* ]]; then
                     if command -v kinit &> /dev/null; then
-                      until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                      kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo "kinit authentication failure"
                     else
                       echo "kinit command not found. Skipping kinit step.";
                     fi;
@@ -391,7 +391,7 @@ jobs:
                     fi;
                   fi;
                   if [ "$ENABLE_EOS" = "1" ]; then
-                    FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
+                    FULL_CMD="kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
                   else
                     FULL_CMD="$EXEC_CMD";
                   fi;

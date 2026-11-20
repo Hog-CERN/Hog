@@ -18,6 +18,9 @@
 ##############################################################
 #   FROM HERE ALL THE ELEMENTS FOR THE LOGGER
 #   any question contact: guillermo.ldl@cern.ch
+
+# Hog print function moved to HogPrint.sh
+# Call this indirectly via CommonFunctions.sh
 ##############################################################
 ##############################################################
 
@@ -686,7 +689,7 @@ function Msg() {
   # @param[in] string
   #
   # @return  string
-trim() {
+function trim() {
   local var=$1
   # echo $var
   var="${var#"${var%%[![:space:]]*}"}"
@@ -700,7 +703,7 @@ trim() {
   # @param[in] dictionary name where to store the data
   #
   # @return  '1' if missing arguments else '0'
-process_HogEnv_config() {
+function process_HogEnv_config() {
   # echo "Processing HogEnv config from $1 into $2"
   local file_path=$1
   local dict_name=$2
@@ -992,7 +995,7 @@ function Logger_Init() {
   fi
 
   ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
-  print_hog_logo
+  # print_hog_logo
 
   BUFFERING=false
   while IFS= read -r line; do
@@ -1106,7 +1109,7 @@ function Logger_Init() {
   #   fail_when_error=0
   # fi
   # Msg Debug "fail_when_error = $fail_when_error"
-# exit
+  # exit
   hog_user_eo="${current_user}_overloads"
   use_user_ol=0
   use_glob_ol=1

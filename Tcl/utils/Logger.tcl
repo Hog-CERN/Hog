@@ -253,52 +253,53 @@ proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
 
 
 # @brief Print the Hog Logo
+# Hog logo is now directly printed in Do script and so this is no longer needed.
 #
 # @param[in] repo_path The main path of the git repository (default .)
-proc Logo {{repo_path .}} {
-  # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
-  if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
-    if {
-    [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-    } {
-      set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-    } else {
-      set logo_file "$repo_path/Hog/images/hog_logo.txt"
-    }
-
-    cd $repo_path/Hog
-    set ver [Git {describe --always}]
-    set old_path [pwd]
-    # set ver [Git {describe --always}]
-
-    if {[file exists $logo_file]} {
-      set f [open $logo_file "r"]
-      set data [read $f]
-      close $f
-      set lines [split $data "\n"]
-      foreach l $lines {
-        if {[regexp {(Version:)[ ]+} $l -> prefix]} {
-          set string_len [string length $l]
-
-          set version_string "* Version: $ver"
-          set version_len [string length $version_string]
-          append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
-          set l $version_string
-        }
-        Msg Status $l
-      }
-    } {
-      Msg CriticalWarning "Logo file: $logo_file not found"
-    }
-
-    Msg Status ""
-    Msg Status "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
-    Msg Status ""
-
-    # Msg Status "Version: $ver"
-    cd $old_path
-  }
-}
+# proc Logo {{repo_path .}} {
+#   # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
+#   if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
+#     if {
+#     [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+#     } {
+#       set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+#     } else {
+#       set logo_file "$repo_path/Hog/images/hog_logo.txt"
+#     }
+#
+#     cd $repo_path/Hog
+#     set ver [Git {describe --always}]
+#     set old_path [pwd]
+#     # set ver [Git {describe --always}]
+#
+#     if {[file exists $logo_file]} {
+#       set f [open $logo_file "r"]
+#       set data [read $f]
+#       close $f
+#       set lines [split $data "\n"]
+#       foreach l $lines {
+#         if {[regexp {(Version:)[ ]+} $l -> prefix]} {
+#           set string_len [string length $l]
+#
+#           set version_string "* Version: $ver"
+#           set version_len [string length $version_string]
+#           append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
+#           set l $version_string
+#         }
+#         Msg Status $l
+#       }
+#     } {
+#       Msg CriticalWarning "Logo file: $logo_file not found"
+#     }
+#
+#     Msg Status ""
+#     Msg Status "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
+#     Msg Status ""
+#
+#     # Msg Status "Version: $ver"
+#     cd $old_path
+#   }
+# }
 
 # Define the procedure to print the content of a file
 #

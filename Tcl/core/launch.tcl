@@ -27,7 +27,7 @@ if {$_tool eq "tclsh"} {
     set ::HOG_API_MODE 1
   }
 
-  Logo [Repo::Get repo_path]
+  # Logo [Repo::Get repo_path]
 
   if {[Launcher::Get directive] eq ""} {
     Msg Error "No directive given. Run './Hog/Do HELP' for usage."

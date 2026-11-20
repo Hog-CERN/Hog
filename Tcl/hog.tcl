@@ -5531,7 +5531,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
 
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
-    Logo $repo_path
+    # Logo $repo_path
   }
 
   # Check if HogEnv.conf exists and parse it

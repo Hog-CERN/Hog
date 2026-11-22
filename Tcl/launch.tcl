@@ -529,7 +529,7 @@ if {$cmd == -1} {
   if {$do_buttons == 1} {
     Msg Info "Adding Hog buttons to Vivado bar (will use the vivado currently in PATH)..."
     set ide vivado
-    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
+    set cmd "vivado -nojournal -nolog -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
   }
 
   if {$do_compile_lib == 1} {
@@ -549,7 +549,7 @@ if {$cmd == -1} {
 
     set ide vivado
     set cmd \
-      "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator \
+      "vivado -nojournal -nolog -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator \
       -output_dir $output_dir"
   }
 

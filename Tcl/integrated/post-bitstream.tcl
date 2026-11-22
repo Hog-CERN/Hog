@@ -41,7 +41,10 @@ proc WriteHwPlatformWorkaround {proj_dir proj_name work_path hw_platform_args} {
   close $fp
 
   Msg Info "Launching another Vivado instance to run write_hw_platform for $impl_run..."
-  set ret [catch {exec vivado -mode batch -notrace -source $tmp_script >@ stdout 2>@ stderr} result]
+  # Keep the log next to the run, not in the current directory (repository top)
+  set ret [catch {exec vivado -mode batch -notrace \
+    -log "$work_path/hog_write_hw_platform.log" -journal "$work_path/hog_write_hw_platform.jou" \
+    -source $tmp_script >@ stdout 2>@ stderr} result]
 
   if {$ret != 0} {
     Msg Error "write_hw_platform failed in separate Vivado instance:\n$result"

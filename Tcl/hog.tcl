@@ -8839,7 +8839,10 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
     close $workaround
     if {
       [catch {
-        exec vivado -mode batch -source $repo_path/Projects/$proj/.hog/presynth_workaround.tcl \
+        exec vivado -mode batch \
+          -log $repo_path/Projects/$proj/.hog/presynth_workaround.log \
+          -journal $repo_path/Projects/$proj/.hog/presynth_workaround.jou \
+          -source $repo_path/Projects/$proj/.hog/presynth_workaround.tcl \
           -tclargs $repo_path/Hog/Tcl/hog.tcl $PARENT_PRJ \
           "childprocess" $repo_path $proj $generic_string
       } errMsg] != 0

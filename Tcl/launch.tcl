@@ -414,6 +414,15 @@ if {$cmd == -1} {
       exit
     }
 
+    set cheby_tool $options(tool)
+    if {$cheby_tool eq ""} {
+      if {[info exists env(HOG_CHEBY_TOOL)]} {
+        set cheby_tool $env(HOG_CHEBY_TOOL)
+      } else {
+        set cheby_tool "cheby"
+      }
+    }
+
     set cheby_profile $options(profile)
     if {$cheby_profile eq ""} {
       set cheby_profile "all"
@@ -424,15 +433,9 @@ if {$cmd == -1} {
     set hex_ver [lindex $ret 19]
     set ver [HexVersionToString $hex_ver]
 
-    set n_errors [Cheby::Process [Cheby::EntriesFromListFiles $proj_dir $repo_path] \
-                  $repo_path $cheby_dst \
-                  -generate $cheby_gen \
-                  -profile  $cheby_profile \
-                  -tool     $options(tool) \
-                  -strict   $options(strict) \
-                  -verbose  $options(verbose) \
-                  -version  $ver \
-                  -sha      $sha]
+    set n_errors [CopyChebyFiles $proj_dir $repo_path $cheby_dst \
+                  $ver $sha $cheby_gen $cheby_profile $cheby_tool \
+                  $options(strict) $options(verbose)]
 
     if {$n_errors > 0} {
       Msg CriticalWarning "Cheby step finished with $n_errors error(s)."

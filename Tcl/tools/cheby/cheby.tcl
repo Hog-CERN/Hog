@@ -13,18 +13,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-## @file cheby_lib.tcl
-# Cheby register-map support.
+## @file cheby.tcl
+# Cheby register-map tool.
 #
-# The `Cheby` namespace holds everything needed to turn the lines of a `.chb`
-# list file into `cheby` invocations, and to either regenerate or verify the
-# artefacts (HDL, C headers, documentation, ...) those lines declare.
+# The `Tools::Cheby` namespace holds everything needed to turn the lines of a
+# `.chb` list file into `cheby` invocations, and to either regenerate or verify
+# the artefacts (HDL, C headers, documentation, ...) those lines declare.
+# The commands are registered in commands.tcl, sourced at the end of this file.
 #
-# `Cheby::Process` does no list-file handling of its own: it consumes a plain
-# list of *entries*, so the same engine serves the decoupled workflow (entries
-# taken from a loaded HogProjectObj by `Cheby::EntriesFromProject`) and the
-# integrated scripts, which only know a project directory
-# (`Cheby::EntriesFromListFiles`).
+# `Process` does no list-file handling of its own: it consumes a plain list of
+# *entries*, built from the loaded project by `EntriesFromProject`.
 #
 # An entry is a dict with the keys:
 #   input      absolute path to the cheby description file
@@ -33,7 +31,14 @@
 #   props      key/value properties parsed from the same line
 #   origin     human readable location, e.g. "cheby.chb:12"
 
-namespace eval Cheby {
+namespace eval Tools::Cheby {
+
+  Tools::RegisterTool [namespace current] {
+    name        "Cheby"
+    vendor      "CERN"
+    ref_name    {chb}
+    description "Cheby register-map generator: check or regenerate the artefacts declared in the .chb list files."
+  }
 
   # Short generator aliases used in `gen=` and the cheby flag they map to.
   variable GenFlags [dict create \
@@ -419,22 +424,6 @@ PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
   }
 
 
-  ## @brief Collect the entries of every `.chb` list file of a project.
-  #
-  # @param[in] proj_dir   Project directory, must contain a `list/` folder.
-  # @param[in] repo_path  Repository root.
-  #
-  # @return               A list of entries.
-  proc EntriesFromListFiles {proj_dir repo_path} {
-    set entries [list]
-    foreach chb_file [lsort [glob -nocomplain [file join $proj_dir list *.chb]]] {
-      Msg Debug "Reading cheby list file: $chb_file"
-      lappend entries {*}[ParseListFile $chb_file $repo_path]
-    }
-    return $entries
-  }
-
-
   ## @brief Build the entries from an already loaded HogProjectObj.
   #
   # The project object tells us which `.chb` list files belong to the project;
@@ -641,4 +630,8 @@ PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
     }
     return $n_errors
   }
+
+
+  # Cheby commands
+  source [file join [file dirname [info script]] commands.tcl]
 }

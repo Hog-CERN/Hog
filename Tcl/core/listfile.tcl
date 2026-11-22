@@ -376,42 +376,6 @@ namespace eval ListFile {
       }
     }
 
-    # Cheby register-map descriptions. A .chb line is
-    #   <input.cheby> [<output> ...] [key=value ...]
-    # so the bare tokens are the declared artefacts, not flags: collect them
-    # into an ordered `outputs` prop, which pairs up with `gen=` positionally.
-    RegisterCodec {\.cheby$|\.ya?ml$} {
-      library_rule {[expr {$list_ext eq ".chb" ? "cheby.chb" : "others.src"}]}
-      decoder {
-        post {
-          if {$list_ext eq ".chb"} {
-            set props   [tdict get $hog_file props]
-            set outputs [list]
-            foreach tok $raw_tokens {
-              if {[string first "=" $tok] >= 0} { continue }
-              lappend outputs [tstr $tok]
-              if {[tdict exists $props $tok]} { set props [tdict remove $props $tok] }
-            }
-            tdict set props outputs [tlist create {*}$outputs]
-            tdict set hog_file props $props
-          }
-        }
-      }
-      encoder {
-        pre {
-          set props [tdict get $hog_file props]
-          if {[tdict exists $props outputs]} {
-            tlist foreachval out [tdict get $props outputs] { lappend tokens $out }
-          }
-          tdict for {k v} $props {
-            if {$k eq "outputs"} { continue }
-            lappend tokens [EncodeProp $k $v]
-          }
-          set _done 1
-        }
-      }
-    }
-
     RegisterCodec {\.xdc$} {library_rule {[expr {$list_ext eq ".con" ? "sources.con" : "others.src"}]}}
     RegisterCodec {\.sdc$} {library_rule {[expr {$list_ext eq ".con" ? "sources.con" : "others.src"}]}}
     RegisterCodec {\.tcl$} {library_rule {[expr {$list_ext eq ".con" ? "sources.con" : $list_ext eq ".sim" ? "others.sim" : "others.src"}]}}

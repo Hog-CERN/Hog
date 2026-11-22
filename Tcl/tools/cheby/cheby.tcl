@@ -40,6 +40,44 @@ namespace eval Tools::Cheby {
     description "Cheby register-map generator: check or regenerate the artefacts declared in the .chb list files."
   }
 
+  # List-file codec for the cheby descriptions. A .chb line is
+  #   <input.cheby> [<output> ...] [key=value ...]
+  # so the bare tokens are the declared artefacts, not flags: collect them
+  # into an ordered `outputs` prop, which pairs up with `gen=` positionally.
+  # The descriptions go to the `cheby.chb` library, which the IDE tools skip.
+  # The scripts run inside ListFile::Codec::Decode and Encode, see RegisterCodec.
+  ListFile::Codec::RegisterCodec {\.cheby$|\.ya?ml$} {
+    library_rule {[expr {$list_ext eq ".chb" ? "cheby.chb" : "others.src"}]}
+    decoder {
+      post {
+        if {$list_ext eq ".chb"} {
+          set props   [tdict get $hog_file props]
+          set outputs [list]
+          foreach tok $raw_tokens {
+            if {[string first "=" $tok] >= 0} { continue }
+            lappend outputs [tstr $tok]
+            if {[tdict exists $props $tok]} { set props [tdict remove $props $tok] }
+          }
+          tdict set props outputs [tlist create {*}$outputs]
+          tdict set hog_file props $props
+        }
+      }
+    }
+    encoder {
+      pre {
+        set props [tdict get $hog_file props]
+        if {[tdict exists $props outputs]} {
+          tlist foreachval out [tdict get $props outputs] { lappend tokens $out }
+        }
+        tdict for {k v} $props {
+          if {$k eq "outputs"} { continue }
+          lappend tokens [EncodeProp $k $v]
+        }
+        set _done 1
+      }
+    }
+  }
+
   # Short generator aliases used in `gen=` and the cheby flag they map to.
   variable GenFlags [dict create \
     hdl          "--gen-hdl" \
